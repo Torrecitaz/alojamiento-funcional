@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
 WORKDIR /app
 
 # Copiar archivos de proyecto y restaurar
@@ -14,7 +14,7 @@ WORKDIR "/app/Microservicio.Clientes.Api"
 RUN dotnet publish "Microservicio.Clientes.Api.csproj" -c Release -o /app/publish
 
 # Imagen final
-FROM mcr.microsoft.com/dotnet/aspnet:8.0
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview
 WORKDIR /app
 COPY --from=build /app/publish .
 
