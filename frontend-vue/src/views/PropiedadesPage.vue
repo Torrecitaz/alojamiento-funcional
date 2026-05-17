@@ -57,8 +57,9 @@ const fetchPropiedades = async () => {
   loading.value = true;
   error.value = null;
   try {
-    const res = await api.get('/Alojamientos');
-    propiedades.value = res.data;
+    const res = await api.get('/alojamientos');
+    // Map based on the ApiResponseListAlojamiento contract which wraps data
+    propiedades.value = res.data.data || res.data;
   } catch (err) {
     console.error('Error fetching propiedades:', err);
     error.value = 'No se pudieron cargar las propiedades. Intenta nuevamente más tarde.';
