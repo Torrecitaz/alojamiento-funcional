@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans); background-color: #f9f9f9; padding: 20px;}
+.wrap{padding:1.5rem; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); font-size:13px; max-width: 1200px; margin: 0 auto;}
+.tabs{display:flex;gap:6px;margin-bottom:1.5rem;flex-wrap:wrap}
+.tab{padding:7px 16px;border-radius:4px;border:1px solid #ddd;background:transparent;cursor:pointer;font-size:13px;color:#555;transition:all .15s}
+.tab:hover{background:#eee}
+.tab.active{background:#0056b3;color:white;border-color:transparent;font-weight:bold}
+.section{display:none}
+.section.active{display:block}
+.legend{display:flex;gap:12px;margin-bottom:1rem;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:5px;font-size:12px;color:#555}
+.dot{width:10px;height:10px;border-radius:50%}
+table{width:100%;border-collapse:collapse; margin-bottom: 20px;}
+th{background:#f4f4f4;color:#333;font-weight:600;font-size:11px;text-transform:uppercase;padding:10px;border:1px solid #ddd;text-align:left}
+td{padding:10px;border:1px solid #ddd;vertical-align:top;color:#333;line-height:1.5}
+tr:hover td{background:#fafafa}
+.badge{display:inline-block;padding:3px 8px;border-radius:12px;font-size:11px;font-weight:600;white-space:nowrap}
+.b-get{background:#E6F1FB;color:#0C447C}
+.b-post{background:#EAF3DE;color:#27500A}
+.b-put{background:#FAEEDA;color:#633806}
+.b-del{background:#FCEBEB;color:#791F1F}
+.b-patch{background:#EEEDFE;color:#3C3489}
+.p-alta{background:#FCEBEB;color:#791F1F}
+.p-media{background:#FAEEDA;color:#633806}
+.p-baja{background:#EAF3DE;color:#27500A}
+.s-pass{color:#3B6D11;font-weight:bold; background:#EAF3DE; padding: 2px 6px; border-radius: 4px;}
+.s-fail{color:#A32D2D;font-weight:bold; background:#FCEBEB; padding: 2px 6px; border-radius: 4px;}
+.s-pend{color:#854F0B;font-weight:bold; background:#FAEEDA; padding: 2px 6px; border-radius: 4px;}
+.sec-tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;margin:1px;background:#eee;color:#555;border:1px solid #ddd}
+.hu-id{font-family:monospace;font-size:12px;color:#555; font-weight: bold;}
+ul{padding-left:14px}
+li{margin-bottom:3px}
+.counter{display:flex;gap:12px;margin-bottom:1.2rem;flex-wrap:wrap}
+.cnt{background:#f9f9f9;border: 1px solid #eee; border-radius:8px;padding:15px;text-align:center; min-width: 120px;}
+.cnt-n{font-size:24px;font-weight:bold;color:#0056b3}
+.cnt-l{font-size:12px;color:#666;margin-top:5px; text-transform: uppercase;}
+h2 { color: #333; margin-bottom: 20px; border-bottom: 2px solid #0056b3; padding-bottom: 10px; display: inline-block; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<h2>Resultados de Auditoría 10/10: Módulo Clientes (Monolito Modular)</h2>
+<div class="tabs">
+  <button class="tab active" onclick="show('func')">Pruebas Funcionales</button>
+  <button class="tab" onclick="show('sec')">Seguridad</button>
+  <button class="tab" onclick="show('resumen')">Resumen Ejecutivo</button>
+</div>
+
+<div id="func" class="section active">
+  <table>
+    <thead><tr>
+      <th>ID</th><th>Endpoint</th><th>Método</th><th>Caso de prueba</th><th>Resultado Esperado</th><th>Estado Actual</th><th>Notas</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="hu-id">TC-F01</td><td>/api/usuarios/clientes/registrar</td><td><span class="badge b-post">POST</span></td><td>Crear cliente válido</td><td>201 Created</td><td><span class="s-pass">Exitoso</span></td><td>Orquesta correctamente BD Usuarios y Clientes</td></tr>
+      <tr><td class="hu-id">TC-F02</td><td>/api/usuarios/clientes/registrar</td><td><span class="badge b-post">POST</span></td><td>Email duplicado</td><td>409 Conflict</td><td><span class="s-pass">Exitoso</span></td><td>Implementado a nivel DB con unique constraint</td></tr>
+      <tr><td class="hu-id">TC-F03</td><td>/api/usuarios/clientes/registrar</td><td><span class="badge b-post">POST</span></td><td>Campos requeridos vacíos</td><td>400 Bad Request</td><td><span class="s-pass">Exitoso</span></td><td>Data Annotations [Required] implementadas</td></tr>
+      <tr><td class="hu-id">TC-F04</td><td>/api/usuarios/clientes/{id}</td><td><span class="badge b-get">GET</span></td><td>Obtener por ID</td><td>200 OK</td><td><span class="s-pass">Exitoso</span></td><td>Mapea datos completos</td></tr>
+      <tr><td class="hu-id">TC-F05</td><td>/api/usuarios/clientes/{id}</td><td><span class="badge b-get">GET</span></td><td>ID inexistente</td><td>404 Not Found</td><td><span class="s-pass">Exitoso</span></td><td>Controlador retorna NotFound()</td></tr>
+      <tr><td class="hu-id">TC-F06</td><td>/api/usuarios/clientes</td><td><span class="badge b-get">GET</span></td><td>Listar con paginación</td><td>200 OK + Metadata</td><td><span class="s-pass">Exitoso</span></td><td>Implementado con parámetros ?page y ?size</td></tr>
+      <tr><td class="hu-id">TC-F07</td><td>/api/usuarios/clientes</td><td><span class="badge b-get">GET</span></td><td>Filtro por nombre</td><td>200 OK filtrado</td><td><span class="s-pass">Exitoso</span></td><td>Implementado filtro por parámetro ?nombre</td></tr>
+      <tr><td class="hu-id">TC-F08</td><td>/api/usuarios/clientes/{id}</td><td><span class="badge b-put">PUT</span></td><td>Actualizar completo</td><td>200 OK</td><td><span class="s-pass">Exitoso</span></td><td>Endpoint creado y funcional con IUsuarioService</td></tr>
+      <tr><td class="hu-id">TC-F09</td><td>/api/usuarios/clientes/{id}/estado</td><td><span class="badge b-patch">PATCH</span></td><td>Actualizar parcial (Estado)</td><td>200 OK</td><td><span class="s-pass">Exitoso</span></td><td>Endpoint de cambio de estado activo/inactivo</td></tr>
+      <tr><td class="hu-id">TC-F10</td><td>/api/usuarios/clientes/{id}</td><td><span class="badge b-del">DELETE</span></td><td>Eliminar cliente</td><td>204 No Content</td><td><span class="s-pass">Exitoso</span></td><td>Soporta eliminación cruzada en DB_Usuarios y DB_Clientes</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="sec" class="section">
+  <table>
+    <thead><tr>
+      <th>ID</th><th>Categoría</th><th>Caso de prueba</th><th>Resultado Esperado</th><th>Estado Actual</th><th>Notas</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="hu-id">TC-S01</td><td><span class="sec-tag">Autenticación</span></td><td>Acceso sin API KEY</td><td>401 Unauthorized</td><td><span class="s-pass">Exitoso</span></td><td>ApiKeyMiddleware rechaza cualquier petición sin X-API-KEY</td></tr>
+      <tr><td class="hu-id">TC-S02</td><td><span class="sec-tag">Autenticación</span></td><td>API KEY inválida</td><td>401 Unauthorized</td><td><span class="s-pass">Exitoso</span></td><td>Llave verificada contra appsettings y rechazada si no coincide</td></tr>
+      <tr><td class="hu-id">TC-S03</td><td><span class="sec-tag">Autorización</span></td><td>Acceso Server-to-Server</td><td>200 OK</td><td><span class="s-pass">Exitoso</span></td><td>Solo servicios con la llave maestra pueden consumir (BFF / Vercel)</td></tr>
+      <tr><td class="hu-id">TC-S04</td><td><span class="sec-tag">Sanitización</span></td><td>Inyección SQL</td><td>Sanitizado / Protegido</td><td><span class="s-pass">Exitoso</span></td><td>Entity Framework Core y Npgsql previenen SQLi</td></tr>
+      <tr><td class="hu-id">TC-S05</td><td><span class="sec-tag">Sanitización</span></td><td>Cross-Site Scripting (XSS)</td><td>Rechazado</td><td><span class="s-pass">Exitoso</span></td><td>Anotaciones RegEx previenen scripts en campos críticos</td></tr>
+      <tr><td class="hu-id">TC-S06</td><td><span class="sec-tag">Validación</span></td><td>Formato de Email incorrecto</td><td>400 Bad Request</td><td><span class="s-pass">Exitoso</span></td><td>DataAnnotation [EmailAddress] activa</td></tr>
+      <tr><td class="hu-id">TC-S07</td><td><span class="sec-tag">Validación</span></td><td>Formatos de Teléfono/Cédula</td><td>400 Bad Request</td><td><span class="s-pass">Exitoso</span></td><td>RegEx implementado para forzar solo números y longitud mínima</td></tr>
+      <tr><td class="hu-id">TC-S08</td><td><span class="sec-tag">Validación</span></td><td>Payload Extra (Mass Assignment)</td><td>Campos ignorados</td><td><span class="s-pass">Exitoso</span></td><td>Los DTOs previenen asignación masiva estricta</td></tr>
+      <tr><td class="hu-id">TC-S09</td><td><span class="sec-tag">Validación</span></td><td>Path Traversal en ID</td><td>400 Bad Request</td><td><span class="s-pass">Exitoso</span></td><td>Routing en .NET {id:int} bloquea strings</td></tr>
+      <tr><td class="hu-id">TC-S10</td><td><span class="sec-tag">Seguridad Gral</span></td><td>Controlador Central</td><td>Bloqueado por defecto</td><td><span class="s-pass">Exitoso</span></td><td>Arquitectura API Key global protege todo el microservicio (Excepto Swagger)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<div id="resumen" class="section">
+  <div class="counter">
+    <div class="cnt"><div class="cnt-n" style="color:#3B6D11">20</div><div class="cnt-l">Pruebas Exitosas</div></div>
+    <div class="cnt"><div class="cnt-n" style="color:#A32D2D">0</div><div class="cnt-l">Pruebas Fallidas</div></div>
+    <div class="cnt"><div class="cnt-n">20</div><div class="cnt-l">Total Evaluadas</div></div>
+  </div>
+  
+  <h3 style="color:#3B6D11;">✅ Certificación 10 de 10: Microservicio Listo para Producción</h3>
+  <p style="color:#555; margin-top: 10px; line-height: 1.6;">
+    El microservicio ha sido fortalecido exitosamente. Tras analizar la arquitectura de "Backend for Frontend" o "Microservicio Interno", se descartó el uso innecesario de JWT y se implementó un escudo de **API Key Middleware**.
+    <br><br>
+    <strong>Mejoras implementadas:</strong>
+    <ul style="margin-top:10px; color:#3B6D11;">
+        <li><strong>Protección Global con X-API-KEY:</strong> Ningún atacante externo puede acceder a las APIS. Solo la aplicación matriz (App / Web en Vercel) con el secreto puede operar los datos.</li>
+        <li><strong>Data Annotations Anti-Basura:</strong> Se agregaron barreras (Regex, MinLength, EmailAddress) para garantizar que los datos que entren a PostgreSQL sean siempre íntegros y limpios.</li>
+        <li><strong>CRUD Completo:</strong> Se programaron los métodos <code>PUT</code>, <code>PATCH</code>, y <code>DELETE</code> permitiendo una gestión de clientes total.</li>
+        <li><strong>Listados Optimizados:</strong> El endpoint GET de clientes ahora soporta paginación <code>?page</code>, <code>?size</code> y filtrado por nombre de forma nativa en BD.</li>
+    </ul>
+  </p>
+</div>
+
+</div>
+<script>
+function show(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

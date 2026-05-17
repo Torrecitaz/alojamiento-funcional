@@ -1,0 +1,24 @@
+[ignoring loop detection]
+## .NET Core
+bin/
+obj/
+*.exe
+*.pdb
+*.user
+*.lock.json
+.vs/
+.vscode/
+
+## User-specific files
+appsettings.Development.json
+
+## Secrets (IMPORTANTE)
+# No subir appsettings.json si tiene contraseñas reales. 
+# En Render usaremos Variables de Entorno.
+# appsettings.json
+
+## Otros
+.DS_Store
+node_modules/
+
+*.bacpac

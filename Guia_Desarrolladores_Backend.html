@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía para Desarrolladores - Backend AlojamientoMR</title>
+<style>
+    :root {
+        --primary: #0f172a;
+        --secondary: #334155;
+        --accent: #2563eb;
+        --bg-light: #f8fafc;
+        --border: #e2e8f0;
+        --success: #10b981;
+        --warning: #f59e0b;
+        --danger: #ef4444;
+    }
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+        color: var(--secondary);
+        background-color: #f1f5f9;
+        line-height: 1.6;
+        margin: 0;
+        padding: 20px;
+    }
+    .container {
+        max-width: 900px;
+        margin: 0 auto;
+        background: #ffffff;
+        padding: 40px;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    h1, h2, h3 { color: var(--primary); }
+    h1 { border-bottom: 3px solid var(--accent); padding-bottom: 10px; margin-top: 0; }
+    h2 { margin-top: 40px; border-bottom: 1px solid var(--border); padding-bottom: 5px; }
+    
+    .callout {
+        background: var(--bg-light);
+        border-left: 4px solid var(--accent);
+        padding: 15px 20px;
+        margin: 20px 0;
+        border-radius: 0 8px 8px 0;
+    }
+    .callout.warning { border-left-color: var(--warning); background-color: #fffbeb; }
+    .callout.danger { border-left-color: var(--danger); background-color: #fef2f2; }
+    
+    code {
+        font-family: 'Consolas', 'Monaco', monospace;
+        background: #f1f5f9;
+        padding: 2px 6px;
+        border-radius: 4px;
+        color: #db2777;
+        font-size: 0.9em;
+    }
+    pre {
+        background: var(--primary);
+        color: #e2e8f0;
+        padding: 15px;
+        border-radius: 8px;
+        overflow-x: auto;
+        font-size: 0.9em;
+        line-height: 1.5;
+    }
+    pre code {
+        background: transparent;
+        color: inherit;
+        padding: 0;
+    }
+    .step {
+        display: flex;
+        align-items: flex-start;
+        margin-bottom: 15px;
+    }
+    .step-number {
+        background: var(--accent);
+        color: white;
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 12px;
+        font-weight: bold;
+        margin-right: 15px;
+        flex-shrink: 0;
+        margin-top: 3px;
+    }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Guía del Backend: AlojamientoMR</h1>
+    
+    <div class="callout">
+        <p><strong>¡Hola equipo!</strong> Este documento explica la arquitectura del backend, cómo inicializar la base de datos y, lo más importante, <strong>dónde y cómo cambiar las cadenas de conexión (URLs) de las bases de datos</strong> para trabajar localmente o desplegar en producción.</p>
+    </div>
+
+    <h2>1. Arquitectura General</h2>
+    <p>El backend está construido usando <strong>.NET 8 (C#)</strong> con una arquitectura de <strong>Monolito Modular</strong> (Clean Architecture). Esto significa que el código está dividido en 4 módulos independientes, cada uno conectado a su propia base de datos PostgreSQL (idealmente en Supabase):</p>
+    <ul>
+        <li><strong>Usuarios:</strong> Gestiona el registro de clientes y perfiles.</li>
+        <li><strong>Alojamientos:</strong> Catálogo de hoteles, suites y disponibilidad.</li>
+        <li><strong>Reservas:</strong> Motor transaccional de check-ins y check-outs.</li>
+        <li><strong>Facturación:</strong> Pagos y comprobantes.</li>
+    </ul>
+
+    <h2>2. Scripts de Base de Datos</h2>
+    <p>En la carpeta <code>DB_Scripts</code> se encuentran los archivos SQL necesarios para crear las tablas, funciones y triggers. Debido a las relaciones lógicas, <strong>debes ejecutarlos estrictamente en este orden</strong> en tu gestor de base de datos (PgAdmin, DBeaver o el panel de Supabase):</p>
+    
+    <div class="step">
+        <div class="step-number">1</div>
+        <div><strong><code>01_DB_Usuarios.sql</code></strong>: Crea roles, clientes y procedimientos de registro.</div>
+    </div>
+    <div class="step">
+        <div class="step-number">2</div>
+        <div><strong><code>02_DB_Alojamientos.sql</code></strong>: Crea tipos, habitaciones y el calendario crítico de disponibilidad.</div>
+    </div>
+    <div class="step">
+        <div class="step-number">3</div>
+        <div><strong><code>03_DB_Reservas.sql</code></strong>: Crea lógica de reservas y orquestación de fechas.</div>
+    </div>
+    <div class="step">
+        <div class="step-number">4</div>
+        <div><strong><code>04_DB_Facturacion.sql</code></strong>: Crea métodos de pago y auditoría general.</div>
+    </div>
+
+    <h2>3. ⚠️ ¿Dónde configurar las URLs de las Bases de Datos?</h2>
+    
+    <p>Para que la API de .NET se pueda conectar a Supabase (o a tu PostgreSQL local), necesitas configurar <strong>4 Connection Strings</strong> (Cadenas de conexión). Hay dos formas de hacerlo: localmente para desarrollo o mediante Variables de Entorno en producción (Render/Azure).</p>
+
+    <h3>Modo Local (Para pruebas en tu PC)</h3>
+    <p>Abre el archivo <code>appsettings.json</code> que está dentro de la carpeta del proyecto <strong><code>Microservicio.Clientes.Api</code></strong>.</p>
+    <p>Busca la sección <code>ConnectionStrings</code>. Debería verse exactamente así (solo reemplaza la contraseña y el host si cambias de base):</p>
+
+<pre><code>"ConnectionStrings": {
+  "ConexionUsuarios": "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.fcdwquzctjdxqssgczlq;Password=TU_CONTRASEÑA_AQUI",
+  "ConexionAlojamientos": "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.db_alojamientos;Password=TU_CONTRASEÑA_AQUI",
+  "ConexionReservas": "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.db_reservas;Password=TU_CONTRASEÑA_AQUI",
+  "ConexionFacturacion": "Host=aws-0-us-east-1.pooler.supabase.com;Port=6543;Database=postgres;Username=postgres.db_facturacion;Password=TU_CONTRASEÑA_AQUI"
+}</code></pre>
+
+    <div class="callout warning">
+        <strong>Importante sobre Supabase:</strong> Si usas Supabase, asegúrate de que el string empiece con <code>Host=...</code> y no con <code>postgres://...</code>, ya que Entity Framework de C# requiere el formato estándar ADO.NET. El puerto usual para el pooler de Supabase es <code>6543</code>.
+    </div>
+
+    <h3>Modo Producción (Render / Azure)</h3>
+    <p><strong>NUNCA</strong> subas tus contraseñas reales a GitHub. En producción, debes crear las siguientes <strong>Variables de Entorno (Environment Variables)</strong> en el panel de control de Render:</p>
+    
+    <table style="width:100%; border-collapse: collapse; margin-top: 15px; font-size: 0.9em;">
+        <tr style="background-color: var(--bg-light); border-bottom: 2px solid var(--border);">
+            <th style="padding: 10px; text-align: left;">Key (Nombre de la Variable)</th>
+            <th style="padding: 10px; text-align: left;">Value (Ejemplo)</th>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px;"><code>ConnectionStrings__ConexionUsuarios</code> <br><small><em>(Nota los dos guiones bajos)</em></small></td>
+            <td style="padding: 10px; font-family: monospace;">Host=...;Port=6543;Database=postgres;...</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px;"><code>ConnectionStrings__ConexionAlojamientos</code></td>
+            <td style="padding: 10px; font-family: monospace;">Host=...;Port=6543;Database=postgres;...</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px;"><code>ConnectionStrings__ConexionReservas</code></td>
+            <td style="padding: 10px; font-family: monospace;">Host=...;Port=6543;Database=postgres;...</td>
+        </tr>
+        <tr style="border-bottom: 1px solid var(--border);">
+            <td style="padding: 10px;"><code>ConnectionStrings__ConexionFacturacion</code></td>
+            <td style="padding: 10px; font-family: monospace;">Host=...;Port=6543;Database=postgres;...</td>
+        </tr>
+    </table>
+    <p style="margin-top: 15px;">Al usar <code>ConnectionStrings__</code> (doble guion bajo), .NET en Linux/Render sobreescribirá automáticamente los valores que estén en el archivo <code>appsettings.json</code>.</p>
+
+    <h2>4. ¿Cómo ejecutar el proyecto localmente?</h2>
+    <p>Abre una terminal (PowerShell o CMD) en la raíz del proyecto y ejecuta:</p>
+<pre><code>cd Microservicio.Clientes.Api
+dotnet run</code></pre>
+    <p>La API iniciará en <code>http://localhost:5028</code>. Puedes abrir <code>http://localhost:5028/swagger</code> para probar los endpoints gráficamente.</p>
+
+</div>
+
+</body>
+</html>

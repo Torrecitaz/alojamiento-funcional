@@ -1,0 +1,24 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /app
+
+# Copiar archivos de proyecto y restaurar
+COPY ["Microservicio.Clientes.Api/Microservicio.Clientes.Api.csproj", "Microservicio.Clientes.Api/"]
+COPY ["Microservicio.Clientes.Business/Microservicio.Clientes.Business.csproj", "Microservicio.Clientes.Business/"]
+COPY ["Microservicio.Clientes.DataManagement/Microservicio.Clientes.DataManagement.csproj", "Microservicio.Clientes.DataManagement/"]
+COPY ["Microservicio.Cliente.DatAccess/Microservicio.Cliente.DatAccess.csproj", "Microservicio.Cliente.DatAccess/"]
+RUN dotnet restore "Microservicio.Clientes.Api/Microservicio.Clientes.Api.csproj"
+
+# Copiar todo el código y publicar
+COPY . .
+WORKDIR "/app/Microservicio.Clientes.Api"
+RUN dotnet publish "Microservicio.Clientes.Api.csproj" -c Release -o /app/publish
+
+# Imagen final
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
+WORKDIR /app
+COPY --from=build /app/publish .
+
+# Exponer el puerto de la API
+EXPOSE 5028
+ENV ASPNETCORE_URLS=http://+:5028
+ENTRYPOINT ["dotnet", "Microservicio.Clientes.Api.dll"]
