@@ -18,22 +18,29 @@
     <div v-else class="propiedades-grid">
       <div v-for="prop in propiedades" :key="prop.alojamientoId" class="card propiedad-card">
         <div class="propiedad-image-placeholder">
-          <!-- Image placeholder for aesthetic -->
-          <div class="image-overlay"></div>
+          <img v-if="prop.imagenUrl" :src="prop.imagenUrl" :alt="prop.nombre" class="propiedad-img" />
+          <div v-else class="image-overlay"></div>
         </div>
         <div class="propiedad-content">
           <div class="propiedad-header">
             <h3>{{ prop.nombre }}</h3>
-            <span class="badge">{{ prop.tipoNombre || 'Alojamiento' }}</span>
+            <span class="badge">{{ prop.tipoAlojamiento || 'Alojamiento' }}</span>
           </div>
           <p class="propiedad-location">
-            <i class="lucide-map-pin"></i> {{ prop.ciudad }}, {{ prop.pais }}
+            📍 {{ prop.ciudad }}{{ prop.direccion ? ', ' + prop.direccion : '' }}
           </p>
-          <p class="propiedad-desc">{{ prop.descripcion?.substring(0, 100) }}...</p>
+          <p class="propiedad-desc">{{ prop.descripcion?.substring(0, 100) || 'Sin descripción' }}{{ prop.descripcion?.length > 100 ? '...' : '' }}</p>
           
+          <div class="propiedad-amenities">
+            <span v-if="prop.estrellas" class="amenity">⭐ {{ prop.estrellas }}</span>
+            <span v-if="prop.tienePiscina" class="amenity">🏊 Piscina</span>
+            <span v-if="prop.admiteMascotas" class="amenity">🐾 Mascotas</span>
+            <span v-if="prop.tieneParqueadero" class="amenity">🅿️ Parking</span>
+          </div>
+
           <div class="propiedad-footer">
             <div class="rating">
-              <i class="lucide-star"></i> {{ prop.calificacion || 'Nuevo' }}
+              ⭐ {{ prop.calificacionPromedio > 0 ? prop.calificacionPromedio.toFixed(1) : 'Nuevo' }}
             </div>
             <router-link :to="`/propiedades/${prop.alojamientoId}`" class="btn-primary btn-sm">
               Ver Detalles
@@ -196,5 +203,26 @@ onMounted(() => {
   gap: 0.25rem;
   font-weight: 600;
   color: #FFB300;
+}
+
+.propiedad-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.propiedad-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.amenity {
+  font-size: 0.8rem;
+  padding: 0.2rem 0.5rem;
+  background: var(--color-secondary);
+  border-radius: var(--radius-full);
+  color: var(--color-primary-dark);
 }
 </style>

@@ -13,7 +13,7 @@ public static class SwaggerExtensions
                 Title       = "Booking API - Mateo Torres",
                 Version     = "v1",
                 Description = "Microservicio de gestión de reservas y clientes — Desarrollado por Mateo Torres",
-                Contact     = new OpenApiContact { Name = "Mateo Torres", Email = "mateo.torres@dev.com" }
+                Contact     = null
             });
 
             // ── Botón "Authorize 🔒" para JWT en Swagger UI ──────────────
