@@ -1,9 +1,9 @@
 # Etapa 1: Construcción
 FROM node:20 AS build
 WORKDIR /app
-COPY frontend-vue/package*.json ./
+COPY booking-frontend/package*.json ./
 RUN npm install
-COPY frontend-vue/ .
+COPY booking-frontend/ .
 RUN npm run build
 
 # Etapa 2: Servidor de producción

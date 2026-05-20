@@ -1,0 +1,140 @@
+version: '3.8'
+
+services:
+  # RabbitMQ para el EventBus
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
+
+  # Bases de datos PostgreSQL
+  postgres_alojamientos:
+    image: postgres:15
+    container_name: postgres_alojamientos
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_alojamientos
+    ports:
+      - "5432:5432"
+    volumes:
+      - ../DB_Scripts/02_DB_Alojamientos.sql:/docker-entrypoint-initdb.d/02_DB_Alojamientos.sql
+
+  postgres_facturacion:
+    image: postgres:15
+    container_name: postgres_facturacion
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_facturacion
+    ports:
+      - "5433:5432"
+    volumes:
+      - ../DB_Scripts/04_DB_Facturacion.sql:/docker-entrypoint-initdb.d/04_DB_Facturacion.sql
+
+  postgres_reservas:
+    image: postgres:15
+    container_name: postgres_reservas
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_reservas
+    ports:
+      - "5434:5432"
+    volumes:
+      - ../DB_Scripts/03_DB_Reservas.sql:/docker-entrypoint-initdb.d/03_DB_Reservas.sql
+
+  postgres_usuarios:
+    image: postgres:15
+    container_name: postgres_usuarios
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: db_usuarios
+    ports:
+      - "5435:5432"
+    volumes:
+      - ../DB_Scripts/01_DB_Usuarios.sql:/docker-entrypoint-initdb.d/01_DB_Usuarios.sql
+
+  # Microservicios
+  alojamientos-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.Alojamientos
+    container_name: alojamientos-api
+    depends_on:
+      - postgres_alojamientos
+      - rabbitmq
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ConexionAlojamientos=Host=postgres_alojamientos;Port=5432;Database=db_alojamientos;Username=postgres;Password=password;
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672/
+
+  facturacion-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.Facturacion
+    container_name: facturacion-api
+    depends_on:
+      - postgres_facturacion
+      - rabbitmq
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ConexionFacturacion=Host=postgres_facturacion;Port=5432;Database=db_facturacion;Username=postgres;Password=password;
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672/
+
+  reservas-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.Reservas
+    container_name: reservas-api
+    depends_on:
+      - postgres_reservas
+      - rabbitmq
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ConexionReservas=Host=postgres_reservas;Port=5432;Database=db_reservas;Username=postgres;Password=password;
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672/
+
+  usuarios-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.Usuarios
+    container_name: usuarios-api
+    depends_on:
+      - postgres_usuarios
+      - rabbitmq
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__ConexionUsuarios=Host=postgres_usuarios;Port=5432;Database=db_usuarios;Username=postgres;Password=password;
+      - ConnectionStrings__RabbitMQ=amqp://guest:guest@rabbitmq:5672/
+
+  # API Gateway
+  api-gateway:
+    build:
+      context: .
+      dockerfile: Dockerfile.ApiGateway
+    container_name: api-gateway
+    ports:
+      - "5028:8080"
+    depends_on:
+      - alojamientos-api
+      - facturacion-api
+      - reservas-api
+      - usuarios-api
+
+  # Frontend
+  frontend:
+    build:
+      context: ../
+      dockerfile: Dockerfile.front
+    container_name: frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api-gateway

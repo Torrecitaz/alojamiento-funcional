@@ -1,0 +1,117 @@
+.navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 100;
+  background: rgba(255,255,255,.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--color-border);
+  transition: all var(--transition-base);
+}
+
+.navbar-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 72px;
+}
+
+.navbar-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: var(--color-primary-dark);
+}
+
+.brand-icon {
+  font-size: 1.6rem;
+  color: var(--color-accent);
+}
+
+.brand-text {
+  font-family: var(--font-serif);
+  letter-spacing: -.02em;
+}
+
+.navbar-links {
+  display: flex;
+  gap: 8px;
+}
+
+.nav-link {
+  padding: 8px 16px;
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  border-radius: var(--radius-md);
+  transition: all var(--transition-fast);
+}
+.nav-link:hover {
+  color: var(--color-primary);
+  background: rgba(26,54,93,.05);
+}
+
+.nav-link-admin {
+  color: var(--color-accent-dark) !important;
+  font-weight: 600 !important;
+}
+.nav-link-admin:hover {
+  background: rgba(201,169,110,.12) !important;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.user-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: rgba(26,54,93,.06);
+  border-radius: var(--radius-full);
+  font-size: .88rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  transition: all var(--transition-fast);
+}
+.user-btn:hover {
+  background: rgba(26,54,93,.12);
+}
+
+.mobile-toggle {
+  display: none;
+  background: none;
+  color: var(--color-text);
+}
+
+@media (max-width: 768px) {
+  .navbar-links {
+    display: none;
+    position: absolute;
+    top: 72px;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    background: var(--color-surface);
+    padding: 16px;
+    border-bottom: 1px solid var(--color-border);
+    box-shadow: var(--shadow-lg);
+    animation: slideDown .3s ease both;
+  }
+  .navbar-links.open { display: flex; }
+  .mobile-toggle { display: block; }
+  .user-menu .user-btn span { display: none; }
+}

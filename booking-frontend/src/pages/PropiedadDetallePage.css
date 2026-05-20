@@ -1,0 +1,196 @@
+.detalle-page {
+  padding: 32px 0 80px;
+}
+
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .9rem;
+  font-weight: 500;
+  color: var(--color-primary);
+  margin-bottom: 24px;
+  transition: gap var(--transition-fast);
+}
+.back-link:hover { gap: 10px; }
+
+.detalle-hero {
+  position: relative;
+  height: 340px;
+  border-radius: var(--radius-xl);
+  overflow: hidden;
+  margin-bottom: 32px;
+}
+
+.detalle-hero-bg {
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: rgba(255,255,255,.5);
+  font-size: 1.2rem;
+}
+
+.detalle-hero-overlay {
+  position: absolute;
+  bottom: 16px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.detalle-content {
+  display: grid;
+  grid-template-columns: 1fr 360px;
+  gap: 32px;
+}
+
+.detalle-title {
+  font-family: var(--font-serif);
+  font-size: 2rem;
+  color: var(--color-text);
+  margin-bottom: 8px;
+}
+
+.detalle-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: .95rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 20px;
+}
+
+.detalle-desc {
+  color: var(--color-text-secondary);
+  line-height: 1.8;
+  margin-bottom: 28px;
+}
+
+.detalle-stats {
+  display: flex;
+  gap: 24px;
+  margin-bottom: 36px;
+  padding: 20px;
+  background: rgba(26,54,93,.03);
+  border-radius: var(--radius-lg);
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+.stat-value {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+.stat-label {
+  font-size: .78rem;
+  color: var(--color-text-muted);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-top: 4px;
+}
+
+.section-subtitle-alt {
+  font-family: var(--font-serif);
+  font-size: 1.4rem;
+  color: var(--color-text);
+  margin-bottom: 20px;
+}
+
+.no-data {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* ── Habitaciones ──────────────────────────────────────── */
+.habitaciones-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hab-card {
+  padding: 20px 24px;
+}
+.hab-card:hover {
+  transform: none;
+  box-shadow: var(--shadow-lg);
+}
+
+.hab-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.hab-header h3 {
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+.hab-desc {
+  font-size: .88rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 12px;
+}
+
+.hab-amenities {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.hab-amenities span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: .82rem;
+  color: var(--color-text-secondary);
+  padding: 4px 10px;
+  background: var(--color-bg);
+  border-radius: var(--radius-full);
+}
+.amenity-highlight {
+  color: var(--color-primary) !important;
+  background: rgba(26,54,93,.06) !important;
+  font-weight: 600;
+}
+
+/* ── Sidebar ───────────────────────────────────────────── */
+.booking-card {
+  padding: 28px;
+  position: sticky;
+  top: 96px;
+}
+.booking-card:hover { transform: none; }
+.booking-card h3 {
+  font-family: var(--font-serif);
+  font-size: 1.2rem;
+  margin-bottom: 8px;
+}
+.booking-card p {
+  font-size: .88rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+
+@media (max-width: 992px) {
+  .detalle-content { grid-template-columns: 1fr; }
+  .booking-card { position: static; }
+}
+
+@media (max-width: 768px) {
+  .detalle-hero { height: 220px; }
+  .detalle-stats { flex-direction: column; gap: 12px; }
+}

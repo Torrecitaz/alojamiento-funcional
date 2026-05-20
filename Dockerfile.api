@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:10.0-preview AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /app
 
 # Copiar archivos de proyecto y restaurar
@@ -14,11 +14,11 @@ WORKDIR "/app/Microservicio.Clientes.Api"
 RUN dotnet publish "Microservicio.Clientes.Api.csproj" -c Release -o /app/publish
 
 # Imagen final
-FROM mcr.microsoft.com/dotnet/aspnet:10.0-preview
+FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/publish .
 
-# Render asigna puerto dinámico vía $PORT, fallback 5028 para local
+# Exponer el puerto de la API
 EXPOSE 5028
-ENV ASPNETCORE_URLS=http://+:${PORT:-5028}
+ENV ASPNETCORE_URLS=http://+:5028
 ENTRYPOINT ["dotnet", "Microservicio.Clientes.Api.dll"]

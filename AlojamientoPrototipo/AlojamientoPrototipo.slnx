@@ -1,0 +1,37 @@
+<Solution>
+  <Folder Name="/ApiGateway/">
+    <Project Path="ApiGateway/ApiGateway/ApiGateway.csproj" />
+  </Folder>
+  <Folder Name="/EventBus/">
+    <Project Path="EventBus/EventBus.Contracts/EventBus.Contracts.csproj" />
+    <Project Path="EventBus/EventBus.RabbitMQ/EventBus.RabbitMQ.csproj" />
+  </Folder>
+  <Folder Name="/Microservices/" />
+  <Folder Name="/Microservices/Alojamientos/">
+    <Project Path="Microservices/Alojamientos/Alojamientos.API/Alojamientos.API.csproj" />
+    <Project Path="Microservices/Alojamientos/Alojamientos.Business/Alojamientos.Business.csproj" />
+    <Project Path="Microservices/Alojamientos/Alojamientos.DataAccess/Alojamientos.DataAccess.csproj" />
+    <Project Path="Microservices/Alojamientos/Alojamientos.DataManagement/Alojamientos.DataManagement.csproj" />
+  </Folder>
+  <Folder Name="/Microservices/Facturacion/">
+    <Project Path="Microservices/Facturacion/Facturacion.API/Facturacion.API.csproj" />
+    <Project Path="Microservices/Facturacion/Facturacion.Business/Facturacion.Business.csproj" />
+    <Project Path="Microservices/Facturacion/Facturacion.DataAccess/Facturacion.DataAccess.csproj" />
+    <Project Path="Microservices/Facturacion/Facturacion.DataManagement/Facturacion.DataManagement.csproj" />
+  </Folder>
+  <Folder Name="/Microservices/Reservas/">
+    <Project Path="Microservices/Reservas/Reservas.API/Reservas.API.csproj" />
+    <Project Path="Microservices/Reservas/Reservas.Business/Reservas.Business.csproj" />
+    <Project Path="Microservices/Reservas/Reservas.DataAccess/Reservas.DataAccess.csproj" />
+    <Project Path="Microservices/Reservas/Reservas.DataManagement/Reservas.DataManagement.csproj" />
+  </Folder>
+  <Folder Name="/Microservices/Usuarios/">
+    <Project Path="Microservices/Usuarios/Usuarios.API/Usuarios.API.csproj" />
+    <Project Path="Microservices/Usuarios/Usuarios.Business/Usuarios.Business.csproj" />
+    <Project Path="Microservices/Usuarios/Usuarios.DataAccess/Usuarios.DataAccess.csproj" />
+    <Project Path="Microservices/Usuarios/Usuarios.DataManagement/Usuarios.DataManagement.csproj" />
+  </Folder>
+  <Folder Name="/Shared/">
+    <Project Path="Shared/Shared.Kernel/Shared.Kernel.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+option csharp_namespace = "Shared.Protos";
+
+package calendario;
+
+// Servicio gRPC para consultar disponibilidad de habitaciones.
+// Usado internamente por el microservicio de Reservas antes de confirmar una reserva.
+service CalendarioGrpc {
+  rpc VerificarDisponibilidad (DisponibilidadRequest) returns (DisponibilidadResponse);
+}
+
+message DisponibilidadRequest {
+  int32 habitacion_id = 1;
+  string fecha_inicio = 2; // Formato: "YYYY-MM-DD"
+  string fecha_fin = 3;    // Formato: "YYYY-MM-DD"
+}
+
+message DisponibilidadResponse {
+  bool disponible = 1;
+  string mensaje = 2;
+}
