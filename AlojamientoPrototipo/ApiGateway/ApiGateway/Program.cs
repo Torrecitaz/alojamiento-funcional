@@ -34,7 +34,7 @@ if (app.Environment.IsDevelopment())
 
 // Estos endpoints son puramente para generar el Swagger con el contrato público requerido.
 // YARP interceptará la llamada real y la enviará al microservicio correspondiente.
-app.MapPost("/api/v1/mathias-rivera/booking", (ApiGateway.Models.CrearReservaRequest request) => 
+app.MapPost("/api/v1/alojaexpress/booking", (ApiGateway.Models.CrearReservaRequest request) =>
     Results.Ok(new ApiGateway.Models.ReservaResponse()))
     .WithName("CreateBooking")
     .WithTags("Booking")
