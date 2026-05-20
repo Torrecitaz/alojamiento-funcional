@@ -29,7 +29,10 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: GrpcUrls__Alojamientos
-        value: https://${alojamientos-api.host}
+        fromService:
+          type: web
+          name: alojamientos-api
+          envVarKey: RENDER_EXTERNAL_URL
 
   - type: web
     name: usuarios-api
@@ -51,13 +54,25 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address
-        value: https://${alojamientos-api.host}/
+        fromService:
+          type: web
+          name: alojamientos-api
+          envVarKey: RENDER_EXTERNAL_URL
       - key: ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address
-        value: https://${reservas-api.host}/
+        fromService:
+          type: web
+          name: reservas-api
+          envVarKey: RENDER_EXTERNAL_URL
       - key: ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address
-        value: https://${usuarios-api.host}/
+        fromService:
+          type: web
+          name: usuarios-api
+          envVarKey: RENDER_EXTERNAL_URL
       - key: ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address
-        value: https://${facturacion-api.host}/
+        fromService:
+          type: web
+          name: facturacion-api
+          envVarKey: RENDER_EXTERNAL_URL
 
   - type: web
     name: booking-frontend
@@ -67,6 +82,12 @@ services:
     plan: free
     envVars:
       - key: API_GATEWAY_URL
-        value: https://${api-gateway.host}
+        fromService:
+          type: web
+          name: api-gateway
+          envVarKey: RENDER_EXTERNAL_URL
       - key: API_GATEWAY_HOST
-        value: ${api-gateway.host}
+        fromService:
+          type: web
+          name: api-gateway
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
