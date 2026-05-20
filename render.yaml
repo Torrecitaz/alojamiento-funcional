@@ -5,13 +5,19 @@ services:
     dockerContext: ./AlojamientoPrototipo
     dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Alojamientos
     plan: free
-    
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+
   - type: web
     name: facturacion-api
     env: docker
     dockerContext: ./AlojamientoPrototipo
     dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Facturacion
     plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
 
   - type: web
     name: reservas-api
@@ -19,6 +25,11 @@ services:
     dockerContext: ./AlojamientoPrototipo
     dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Reservas
     plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: GrpcUrls__Alojamientos
+        value: https://${alojamientos-api.host}
 
   - type: web
     name: usuarios-api
@@ -26,6 +37,9 @@ services:
     dockerContext: ./AlojamientoPrototipo
     dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Usuarios
     plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
 
   - type: web
     name: api-gateway
@@ -33,6 +47,17 @@ services:
     dockerContext: ./AlojamientoPrototipo
     dockerfilePath: ./AlojamientoPrototipo/Dockerfile.ApiGateway
     plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address
+        value: https://${alojamientos-api.host}/
+      - key: ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address
+        value: https://${reservas-api.host}/
+      - key: ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address
+        value: https://${usuarios-api.host}/
+      - key: ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address
+        value: https://${facturacion-api.host}/
 
   - type: web
     name: booking-frontend
@@ -40,3 +65,8 @@ services:
     dockerContext: .
     dockerfilePath: ./Dockerfile.front
     plan: free
+    envVars:
+      - key: API_GATEWAY_URL
+        value: https://${api-gateway.host}
+      - key: API_GATEWAY_HOST
+        value: ${api-gateway.host}
