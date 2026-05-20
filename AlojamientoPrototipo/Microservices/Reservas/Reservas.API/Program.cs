@@ -8,7 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. Base de datos ─────────────────────────────────
 builder.Services.AddDbContext<ReservasDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionReservas"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionReservas"),
+            npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorCodesToAdd: null))
            .UseLowerCaseNamingConvention());
 
 // ── 2. Dependencias de la Aplicación ─────────────────

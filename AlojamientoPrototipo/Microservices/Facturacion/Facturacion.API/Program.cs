@@ -8,7 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. Base de datos ─────────────────────────────────
 builder.Services.AddDbContext<FacturacionDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionFacturacion"))
+    options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionFacturacion"),
+            npgsqlOptions => npgsqlOptions.EnableRetryOnFailure(
+                maxRetryCount: 5,
+                maxRetryDelay: TimeSpan.FromSeconds(10),
+                errorCodesToAdd: null))
            .UseLowerCaseNamingConvention());
 
 // ── 2. Dependencias de la Aplicación ─────────────────
