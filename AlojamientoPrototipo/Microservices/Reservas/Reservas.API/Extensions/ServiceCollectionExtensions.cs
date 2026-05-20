@@ -33,7 +33,8 @@ public static class ServiceCollectionExtensions
         services.AddGrpcClient<Shared.Protos.CalendarioGrpc.CalendarioGrpcClient>(o =>
         {
             o.Address = new Uri(grpcUrl);
-        });
+        })
+        .ConfigurePrimaryHttpMessageHandler(() => new Grpc.Net.Client.Web.GrpcWebHandler(new HttpClientHandler()));
 
         return services;
     }

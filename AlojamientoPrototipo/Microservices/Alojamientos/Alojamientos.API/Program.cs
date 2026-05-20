@@ -35,11 +35,14 @@ app.UseSwaggerUI();
 
 // CORS
 app.UseCors();
+app.UseRouting();
 
 // Mapeo de Controladores
 app.MapControllers();
 
 // gRPC Service
-app.MapGrpcService<Alojamientos.API.GrpcServices.CalendarioGrpcService>();
+app.UseGrpcWeb(new GrpcWebOptions { DefaultEnabled = true });
+app.MapGrpcService<Alojamientos.API.GrpcServices.CalendarioGrpcService>()
+   .EnableGrpcWeb();
 
 app.Run();

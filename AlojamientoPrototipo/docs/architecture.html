@@ -1,0 +1,612 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<title>AlojamientoMR – Guía Completa de Configuración y Arquitectura Backend</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<style>
+  :root {
+    --bg-color: #0f172a;
+    --card-bg: #1e293b;
+    --border-color: #334155;
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+    --accent: #38bdf8;
+    --accent-hover: #0ea5e9;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --code-bg: #090d16;
+    --font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  * {
+    box-sizing: border-box;
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: var(--font-family);
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem 1.5rem;
+  }
+
+  header {
+    text-align: center;
+    margin-bottom: 3rem;
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 2.5rem;
+    color: var(--accent);
+    margin: 0 0 0.5rem 0;
+  }
+
+  header p {
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .badge-container {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    background-color: var(--border-color);
+    color: var(--text-main);
+    padding: 0.25rem 0.75rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 500;
+  }
+
+  .badge.success { background-color: rgba(16, 185, 129, 0.2); color: var(--success); border: 1px solid var(--success); }
+  .badge.warning { background-color: rgba(245, 158, 11, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+  .badge.accent { background-color: rgba(56, 189, 248, 0.2); color: var(--accent); border: 1px solid var(--accent); }
+
+  h2 {
+    font-size: 1.8rem;
+    color: var(--text-main);
+    border-left: 4px solid var(--accent);
+    padding-left: 0.75rem;
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+  }
+
+  h3 {
+    font-size: 1.3rem;
+    color: var(--accent);
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+  }
+
+  p, li {
+    color: var(--text-muted);
+  }
+
+  strong {
+    color: var(--text-main);
+  }
+
+  .card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+  }
+
+  .card-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.5rem;
+    margin-top: 1.5rem;
+  }
+
+  .card h3 {
+    margin-top: 0;
+  }
+
+  /* Code Formatting */
+  pre {
+    background-color: var(--code-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin: 1rem 0;
+  }
+
+  code {
+    font-family: 'Consolas', 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    color: #e2e8f0;
+  }
+
+  p code, li code {
+    background-color: var(--code-bg);
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    color: #f472b6;
+  }
+
+  /* Tables */
+  .table-responsive {
+    overflow-x: auto;
+    margin: 1.5rem 0;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+    font-size: 0.95rem;
+  }
+
+  th {
+    background-color: var(--code-bg);
+    color: var(--accent);
+    font-weight: 600;
+    padding: 0.75rem 1rem;
+    border-bottom: 2px solid var(--border-color);
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  tr:hover {
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  /* Alert Callouts */
+  .callout {
+    border-left: 4px solid;
+    padding: 1rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.5rem 0;
+    background-color: rgba(255, 255, 255, 0.02);
+  }
+
+  .callout.info { border-color: var(--accent); background-color: rgba(56, 189, 248, 0.05); }
+  .callout.warning { border-color: var(--warning); background-color: rgba(245, 158, 11, 0.05); }
+  .callout.danger { border-color: var(--danger); background-color: rgba(239, 68, 68, 0.05); }
+
+  .callout-title {
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    color: var(--text-main);
+  }
+
+  .callout.info .callout-title { color: var(--accent); }
+  .callout.warning .callout-title { color: var(--warning); }
+  .callout.danger .callout-title { color: var(--danger); }
+
+  /* Navigation Sidebar */
+  .layout {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .sidebar {
+    width: 250px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 2rem;
+    height: calc(100vh - 4rem);
+    overflow-y: auto;
+  }
+
+  .sidebar ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .sidebar li {
+    margin-bottom: 0.5rem;
+  }
+
+  .sidebar a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.95rem;
+    transition: color 0.2s ease;
+    display: block;
+    padding: 0.25rem 0;
+  }
+
+  .sidebar a:hover {
+    color: var(--accent);
+  }
+
+  .main-content {
+    flex-grow: 1;
+    min-width: 0; /* Prevents flex children from stretching */
+  }
+
+  @media (max-width: 900px) {
+    .layout {
+      flex-direction: column;
+    }
+    .sidebar {
+      width: 100%;
+      height: auto;
+      position: static;
+      margin-bottom: 2rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1>AlojamientoMR</h1>
+    <p>Manual Técnico y Guía de Conexión del Ecosistema de Microservicios</p>
+    <div class="badge-container">
+      <span class="badge accent">.NET 8 Web API</span>
+      <span class="badge success">gRPC-Web Integrado</span>
+      <span class="badge warning">MassTransit / RabbitMQ</span>
+      <span class="badge">YARP Gateway</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <aside class="sidebar">
+      <nav>
+        <h3>Contenido</h3>
+        <ul>
+          <li><a href="#arquitectura">1. Arquitectura General</a></li>
+          <li><a href="#microservicios">2. Detalle de Microservicios</a></li>
+          <li><a href="#bbdd">3. Configuración de Base de Datos</a></li>
+          <li><a href="#messaging">4. CloudAMQP (RabbitMQ)</a></li>
+          <li><a href="#render">5. Despliegue en Render</a></li>
+          <li><a href="#gateway">6. YARP Gateway</a></li>
+          <li><a href="#env-vars">7. Variables de Entorno</a></li>
+          <li><a href="#guia-ai">8. Guía para Chatbots / AIs</a></li>
+        </ul>
+      </nav>
+    </aside>
+
+    <main class="main-content">
+
+      <!-- ARQUITECTURA -->
+      <section id="arquitectura">
+        <h2>1. Arquitectura General del Sistema</h2>
+        <div class="card">
+          <p>El backend de <strong>AlojamientoMR</strong> está estructurado como un ecosistema descentralizado de microservicios. Cuenta con una puerta de enlace central (Gateway) y comunicación tanto sincrónica (gRPC) como asincrónica (RabbitMQ/CloudAMQP).</p>
+          <pre><code>
+               [ CLIENTE / FRONTEND ]
+                         │
+                         ▼ (HTTPS REST / JSON)
+                  [ ApiGateway ] (YARP)
+            ┌────────────┼────────────┬────────────┐
+            ▼            ▼            ▼            ▼
+      [ Alojamientos ] [ Reservas ] [ Usuarios ] [ Facturacion ]
+            ▲            │
+            └────────────┘
+              (gRPC-Web) 
+            
+      [------ Event Bus (CloudAMQP / RabbitMQ) ------]
+          - Facturacion publica: FacturaPagadaEvent
+          - Reservas consume el evento para actualizar estado
+          </code></pre>
+        </div>
+      </section>
+
+      <!-- MICROSERVICIOS -->
+      <section id="microservicios">
+        <h2>2. Detalle de los Microservicios</h2>
+        <p>Cada microservicio opera con su propio contexto de negocio, base de datos aislada y responsabilidades definidas:</p>
+        
+        <div class="card-grid">
+          <div class="card">
+            <h3>🏠 Alojamientos API</h3>
+            <p>Gestiona los datos de los hoteles, cabañas o alojamientos disponibles y su calendario de ocupación.</p>
+            <ul>
+              <li><strong>Puerto Local:</strong> <code>5002</code></li>
+              <li><strong>Ruta API:</strong> <code>/api/v1/alojamientos</code></li>
+              <li><strong>Servicio gRPC:</strong> <code>CalendarioGrpcService</code> para validar fechas libres.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>📅 Reservas API</h3>
+            <p>Orquesta la creación de reservas de clientes. Hace una llamada sincrónica vía gRPC a Alojamientos para validar la disponibilidad antes de confirmar.</p>
+            <ul>
+              <li><strong>Puerto Local:</strong> <code>5003</code></li>
+              <li><strong>Ruta API:</strong> <code>/api/v1/reservas</code></li>
+              <li><strong>Consumidor de Eventos:</strong> Recibe notificaciones de facturas cobradas para actualizar el estado del alquiler.</li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>👤 Usuarios API</h3>
+            <p>Administra perfiles de usuarios, roles y datos personales.</p>
+            <ul>
+              <li><strong>Puerto Local:</strong> <code>5004</code></li>
+              <li><strong>Ruta API:</strong> <code>/api/v1/usuarios</code></li>
+            </ul>
+          </div>
+
+          <div class="card">
+            <h3>💳 Facturación API</h3>
+            <p>Se encarga de generar facturas cuando se confirma una reserva y publicar eventos de pago completado.</p>
+            <ul>
+              <li><strong>Puerto Local:</strong> <code>5005</code></li>
+              <li><strong>Ruta API:</strong> <code>/api/v1/facturacion</code></li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- CONFIGURACIÓN BBDD -->
+      <section id="bbdd">
+        <h2>3. Configuración de Base de Datos (PostgreSQL)</h2>
+        <div class="card">
+          <p>Para cumplir con los principios de microservicios, <strong>cada servicio tiene su propia base de datos dedicada</strong>. En producción se utiliza PostgreSQL (por ejemplo, alojado en Supabase, Neon o Render PostgreSQL).</p>
+          
+          <div class="callout warning">
+            <div class="callout-title">¡Atención Compañeros de Equipo!</div>
+            <p><strong>NO compartan las mismas tablas ni la misma base de datos.</strong> Cada uno debe crear un recurso de base de datos independiente (en su cuenta de Supabase u otro proveedor) y utilizar el nombre de la cadena de conexión adecuado.</p>
+          </div>
+
+          <h3>Claves de Connection String en <code>appsettings.json</code>:</h3>
+          <p>Deben configurar la cadena de conexión correspondiente para cada servicio bajo la sección <code>ConnectionStrings</code>:</p>
+
+          <div class="table-responsive">
+            <table>
+              <thead>
+                <tr>
+                  <th>Proyecto / Microservicio</th>
+                  <th>Clave de Configuración</th>
+                  <th>Proveedor Recomendado</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>Alojamientos.API</strong></td>
+                  <td><code>ConexionAlojamientos</code></td>
+                  <td>PostgreSQL (Supabase) con soporte PostGIS/Extensiones si aplica</td>
+                </tr>
+                <tr>
+                  <td><strong>Reservas.API</strong></td>
+                  <td><code>ConexionReservas</code></td>
+                  <td>PostgreSQL (Supabase)</td>
+                </tr>
+                <tr>
+                  <td><strong>Facturacion.API</strong></td>
+                  <td><code>ConexionFacturacion</code></td>
+                  <td>PostgreSQL (Supabase)</td>
+                </tr>
+                <tr>
+                  <td><strong>Usuarios.API</strong></td>
+                  <td><code>ConexionUsuarios</code></td>
+                  <td>PostgreSQL (Supabase + NetTopologySuite para geolocalización)</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <h3>Plantilla de Cadena de Conexión (Sin Credenciales Reales):</h3>
+          <pre><code>"ConnectionStrings": {
+  "Conexion[NombreServicio]": "Host=[TU_HOST_AQUÍ];Port=[TU_PUERTO_AQUÍ];Database=[TU_BD_AQUÍ];Username=[TU_USUARIO_AQUÍ];Password=[TU_CONTRASEÑA_AQUÍ];SSL Mode=Require;Trust Server Certificate=true;Include Error Detail=true"
+}</code></pre>
+        </div>
+      </section>
+
+      <!-- MESSAGING CLOUDAMQP -->
+      <section id="messaging">
+        <h2>4. Integración con CloudAMQP (RabbitMQ)</h2>
+        <div class="card">
+          <p>La mensajería asincrónica está implementada utilizando <strong>MassTransit</strong> con el broker <strong>RabbitMQ</strong>. En la nube utilizamos <strong>CloudAMQP</strong> (plan gratuito <em>Lemur</em>).</p>
+          
+          <h3>¿Cómo funciona la integración?</h3>
+          <ol>
+            <li>Cuando se realiza un pago o cambio en <code>Facturacion.API</code>, se emite un evento <code>FacturaPagadaEvent</code>.</li>
+            <li><code>Reservas.API</code> cuenta con un <code>FacturaPagadaConsumer</code> que escucha la cola y actualiza el estado de la reserva automáticamente sin acoplamiento directo entre APIs.</li>
+          </ol>
+
+          <h3>Configuración en el código:</h3>
+          <p>Tanto en <strong>Reservas.API</strong> como en <strong>Facturacion.API</strong>, la conexión busca la clave de cadena de conexión llamada <code>RabbitMQ</code>:</p>
+          <pre><code>"ConnectionStrings": {
+  "RabbitMQ": "amqps://[USER]:[PASSWORD]@[HOST]/[VIRTUAL_HOST]"
+}</code></pre>
+
+          <div class="callout info">
+            <div class="callout-title">Pasos para crear tu propio CloudAMQP:</div>
+            <ol>
+              <li>Regístrate gratis en <a href="https://www.cloudamqp.com/" target="_blank">CloudAMQP</a>.</li>
+              <li>Crea una nueva instancia en la región más cercana a tus servidores de Render (ej. US-East-1).</li>
+              <li>Copia la <strong>AMQP URL</strong> (comienza con <code>amqps://</code>).</li>
+              <li>Pégala en tu variable de entorno o archivo de configuración local.</li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- DESPLIEGUE EN RENDER -->
+      <section id="render">
+        <h2>5. Despliegue en Render</h2>
+        <div class="card">
+          <p>Para subir el ecosistema a Render, cada desarrollador del equipo debe crear sus propios servicios en su cuenta de Render. Sigue los siguientes lineamientos para evitar colisiones y fallas de comunicación:</p>
+
+          <h3>Patrón de Nombres Recomendado para tus APIs:</h3>
+          <p>Dado que los nombres en Render deben ser únicos globalmente en el subdominio <code>*.onrender.com</code>, personaliza los nombres agregando tus iniciales o nombre como prefijo:</p>
+          <ul>
+            <li><code>[tu-nombre]-alojamientos-api</code></li>
+            <li><code>[tu-nombre]-reservas-api</code></li>
+            <li><code>[tu-nombre]-usuarios-api</code></li>
+            <li><code>[tu-nombre]-facturacion-api</code></li>
+            <li><code>[tu-nombre]-apigateway</code></li>
+          </ul>
+
+          <h3>Configuración del Dockerfile en Render:</h3>
+          <p>El repositorio ya incluye Dockerfiles optimizados para cada microservicio. Al crear el <strong>Web Service</strong> en Render:</p>
+          <ol>
+            <li>Define el **Runtime** como <code>Docker</code>.</li>
+            <li>Especifica la ruta del Dockerfile relativo a la raíz del repositorio, por ejemplo:
+              <ul>
+                <li>Para Alojamientos: <code>Dockerfile.Alojamientos</code></li>
+                <li>Para Reservas: <code>Dockerfile.Reservas</code></li>
+                <li>Para Gateway: <code>Dockerfile.ApiGateway</code></li>
+              </ul>
+            </li>
+            <li>Usa la rama <code>main</code> para el auto-despliegue.</li>
+          </ol>
+
+          <div class="callout danger">
+            <div class="callout-title">Configuración Crucial de gRPC-Web en Entornos Gratuitos de Render</div>
+            <p>Los balanceadores de carga gratuitos de Render **no admiten peticiones HTTP/2 gRPC estándar** directamente sobre Internet (las fuerzan a HTTP/1.1 y causan error <code>Content-Type 'application/grpc' is not supported</code>).</p>
+            <p>Para solucionarlo de forma permanente, configuramos <strong>gRPC-Web</strong>. Por lo tanto:</p>
+            <ul>
+              <li><strong>Alojamientos (Servidor):</strong> Expone su gRPC-Web de manera pública en la misma URL que sus endpoints REST.</li>
+              <li><strong>Reservas (Cliente):</strong> Apunta a la URL de Alojamientos usando la URL pública HTTPS:
+                <br/><code>GrpcUrls__Alojamientos</code> = <code>https://[tu-nombre]-alojamientos-api.onrender.com</code>
+              </li>
+            </ul>
+          </div>
+        </div>
+      </section>
+
+      <!-- YARP GATEWAY -->
+      <section id="gateway">
+        <h2>6. Configuración de YARP Gateway</h2>
+        <div class="card">
+          <p>El Gateway actúa como el único punto de entrada público para los clientes. Utiliza <strong>YARP (Yet Another Reverse Proxy)</strong> y redirige el tráfico según el patrón de ruta solicitado.</p>
+
+          <h3>Configuración en <code>appsettings.json</code> del Gateway:</h3>
+          <p>El Gateway traduce las rutas del estilo <code>/api/v1/mathias-rivera/...</code> hacia el microservicio interno correspondiente. Si cambias el nombre de tus servicios en Render, debes modificar las direcciones de los clusters en el <code>appsettings.json</code> del Gateway:</p>
+
+          <pre><code>"ReverseProxy": {
+  "Clusters": {
+    "reservas-cluster": {
+      "Destinations": {
+        "destination1": {
+          "Address": "https://[tu-nombre]-reservas-api.onrender.com/"
+        }
+      }
+    },
+    "alojamientos-cluster": {
+      "Destinations": {
+        "destination1": {
+          "Address": "https://[tu-nombre]-alojamientos-api.onrender.com/"
+        }
+      }
+    }
+  }
+}</code></pre>
+
+          <p>O configurarlos mediante variables de entorno en el panel de Render del Gateway:</p>
+          <ul>
+            <li><code>ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address</code> = <code>https://[tu-nombre]-reservas-api.onrender.com/</code></li>
+            <li><code>ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address</code> = <code>https://[tu-nombre]-alojamientos-api.onrender.com/</code></li>
+          </ul>
+        </div>
+      </section>
+
+      <!-- VARIABLES DE ENTORNO -->
+      <section id="env-vars">
+        <h2>7. Matriz de Variables de Entorno Necesarias en Render</h2>
+        <p>Asegúrate de cargar las siguientes variables de entorno en cada uno de tus Web Services de Render:</p>
+
+        <div class="table-responsive">
+          <table>
+            <thead>
+              <tr>
+                <th>Servicio en Render</th>
+                <th>Nombre de Variable</th>
+                <th>Valor / Formato de Ejemplo</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td><strong>[tu-nombre]-alojamientos-api</strong></td>
+                <td><code>ConnectionStrings__ConexionAlojamientos</code></td>
+                <td><code>Host=your-supabase.com;Database=postgres;Username=postgres;Password=***;</code></td>
+              </tr>
+              <tr>
+                <td rowspan="3"><strong>[tu-nombre]-reservas-api</strong></td>
+                <td><code>ConnectionStrings__ConexionReservas</code></td>
+                <td><code>Host=your-supabase.com;Database=postgres;Username=postgres;Password=***;</code></td>
+              </tr>
+              <tr>
+                <td><code>ConnectionStrings__RabbitMQ</code></td>
+                <td><code>amqps://your-user:your-pass@shrimp.rmq.cloudamqp.com/your-vhost</code></td>
+              </tr>
+              <tr>
+                <td><code>GrpcUrls__Alojamientos</code></td>
+                <td><code>https://[tu-nombre]-alojamientos-api.onrender.com</code></td>
+              </tr>
+              <tr>
+                <td rowspan="2"><strong>[tu-nombre]-facturacion-api</strong></td>
+                <td><code>ConnectionStrings__ConexionFacturacion</code></td>
+                <td><code>Host=your-supabase.com;Database=postgres;Username=postgres;Password=***;</code></td>
+              </tr>
+              <tr>
+                <td><code>ConnectionStrings__RabbitMQ</code></td>
+                <td><code>amqps://your-user:your-pass@shrimp.rmq.cloudamqp.com/your-vhost</code></td>
+              </tr>
+              <tr>
+                <td><strong>[tu-nombre]-usuarios-api</strong></td>
+                <td><code>ConnectionStrings__ConexionUsuarios</code></td>
+                <td><code>Host=your-supabase.com;Database=postgres;Username=postgres;Password=***;</code></td>
+              </tr>
+              <tr>
+                <td rowspan="2"><strong>[tu-nombre]-apigateway</strong></td>
+                <td><code>ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address</code></td>
+                <td><code>https://[tu-nombre]-reservas-api.onrender.com/</code></td>
+              </tr>
+              <tr>
+                <td><code>ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address</code></td>
+                <td><code>https://[tu-nombre]-alojamientos-api.onrender.com/</code></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- GUIA PARA CHATBOTS / AIS -->
+      <section id="guia-ai">
+        <h2>8. Contexto Rápido para Modelos de Lenguaje / AIs</h2>
+        <div class="card" style="border: 2px dashed var(--accent);">
+          <p>Si tus compañeros de equipo necesitan ayuda de un asistente de IA (como ChatGPT, Claude o Gemini) para extender el backend, pueden copiar y enviarle el siguiente texto como contexto:</p>
+          
+          <pre style="white-space: pre-wrap; font-size: 0.85rem; color: var(--text-muted);">
+"Hola Asistente de IA. Estoy trabajando en un proyecto de microservicios de .NET 8 llamado AlojamientoMR. El sistema consta de:
+1. Alojamientos API: Puerto 5002, gestiona hoteles y disponibilidad mediante gRPC-Web (servicio CalendarioGrpcService) y REST. Usa la base de datos 'ConexionAlojamientos' en PostgreSQL.
+2. Reservas API: Puerto 5003, consume CalendarioGrpcService a través de un cliente gRPC-Web direccionado por la variable de entorno 'GrpcUrls:Alojamientos' que apunta a la URL pública del microservicio de Alojamientos. Usa la base de datos 'ConexionReservas'.
+3. Usuarios API: Puerto 5004, base de datos 'ConexionUsuarios'.
+4. Facturacion API: Puerto 5005, base de datos 'ConexionFacturacion'.
+5. ApiGateway: YARP Proxy que mapea rutas públicas de tipo `/api/v1/mathias-rivera/[nombre-servicio]` hacia las URL correspondientes de cada microservicio en la nube.
+6. Event Bus: MassTransit con RabbitMQ mediante la conexión 'ConnectionStrings:RabbitMQ' provista por CloudAMQP. Facturacion publica FacturaPagadaEvent que es escuchado de forma asíncrona por el FacturaPagadaConsumer en Reservas API.
+Toda la configuración de variables de entorno usa doble guion bajo (__) para simular la jerarquía de appsettings.json en producción de Render (ej: ConnectionStrings__ConexionReservas, GrpcUrls__Alojamientos). Ayúdame a agregar nuevas características manteniendo esta arquitectura."</pre>
+        </div>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+</body>
+</html>
