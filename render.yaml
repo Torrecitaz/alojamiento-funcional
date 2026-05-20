@@ -1,0 +1,42 @@
+services:
+  - type: web
+    name: alojamientos-api
+    env: docker
+    dockerContext: ./AlojamientoPrototipo
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Alojamientos
+    plan: free
+    
+  - type: web
+    name: facturacion-api
+    env: docker
+    dockerContext: ./AlojamientoPrototipo
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Facturacion
+    plan: free
+
+  - type: web
+    name: reservas-api
+    env: docker
+    dockerContext: ./AlojamientoPrototipo
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Reservas
+    plan: free
+
+  - type: web
+    name: usuarios-api
+    env: docker
+    dockerContext: ./AlojamientoPrototipo
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Usuarios
+    plan: free
+
+  - type: web
+    name: api-gateway
+    env: docker
+    dockerContext: ./AlojamientoPrototipo
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.ApiGateway
+    plan: free
+
+  - type: web
+    name: booking-frontend
+    env: docker
+    dockerContext: .
+    dockerfilePath: ./Dockerfile.front
+    plan: free
