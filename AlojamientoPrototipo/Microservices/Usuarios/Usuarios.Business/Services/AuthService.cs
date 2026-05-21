@@ -1,17 +1,68 @@
+using System;
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Text;
+using System.Threading.Tasks;
+using Microsoft.IdentityModel.Tokens;
 using Usuarios.Business.DTOs.Auth;
 using Usuarios.Business.Interfaces;
+using Usuarios.DataManagement.Interfaces;
 
 namespace Usuarios.Business.Services;
 
-/// <summary>
-/// Stub: Servicio de autenticación. Retorna null por ahora.
-/// Se implementará con JWT en fases posteriores.
-/// </summary>
 public class AuthService : IAuthService
 {
-    public Task<LoginResponse?> LoginAsync(LoginRequest request)
+    private readonly IUsuariosDataService _usuarioData;
+    private readonly IClientesDataService _clienteData;
+
+    public AuthService(IUsuariosDataService usuarioData, IClientesDataService clienteData)
     {
-        // TODO: Implementar validación de credenciales y generación de JWT
-        return Task.FromResult<LoginResponse?>(null);
+        _usuarioData = usuarioData;
+        _clienteData = clienteData;
+    }
+
+    public async Task<LoginResponse?> LoginAsync(LoginRequest request)
+    {
+        var user = await _usuarioData.GetByEmailAsync(request.Email);
+        if (user == null || user.PasswordHash != request.Password)
+        {
+            return null;
+        }
+
+        // Generar JWT
+        var tokenHandler = new JwtSecurityTokenHandler();
+        var key = Encoding.ASCII.GetBytes("SuperSecretKeyOfAtLeast32CharactersLong!!!");
+        var tokenDescriptor = new SecurityTokenDescriptor
+        {
+            Subject = new ClaimsIdentity(new[]
+            {
+                new Claim(JwtRegisteredClaimNames.Sub, user.UsuarioId.ToString()),
+                new Claim(JwtRegisteredClaimNames.Email, user.Email),
+                new Claim(ClaimTypes.Role, user.Rol)
+            }),
+            Expires = DateTime.UtcNow.AddDays(7),
+            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        };
+        var token = tokenHandler.CreateToken(tokenDescriptor);
+        var tokenString = tokenHandler.WriteToken(token);
+
+        // Obtener ClienteId si el rol es Cliente
+        int? clienteId = null;
+        if (user.Rol.Equals("Cliente", StringComparison.OrdinalIgnoreCase))
+        {
+            var cliente = await _clienteData.GetByUsuarioIdAsync(user.UsuarioId);
+            if (cliente != null)
+            {
+                clienteId = cliente.ClienteId;
+            }
+        }
+
+        return new LoginResponse(
+            Token: tokenString,
+            NombreCompleto: user.NombreCompleto,
+            Email: user.Email,
+            Roles: new[] { user.Rol },
+            ClienteId: clienteId
+        );
     }
 }

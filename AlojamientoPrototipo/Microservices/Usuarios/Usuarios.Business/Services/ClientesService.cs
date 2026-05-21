@@ -42,9 +42,28 @@ public class ClientesService : IClientesService
 
     public async Task RegistrarClienteAsync(RegistrarClienteRequest request)
     {
+        var cedula = request.Cedula;
+        if (string.IsNullOrWhiteSpace(cedula))
+        {
+            var random = new Random();
+            bool existe = true;
+            while (existe)
+            {
+                cedula = random.Next(1000000000, 1999999999).ToString().Substring(1); // Genera 10 dígitos
+                var existente = await _clienteData.GetByCedulaAsync(cedula);
+                if (existente == null)
+                {
+                    existe = false;
+                }
+            }
+        }
+
+        var telefono = request.Telefono ?? "0000000000";
+        var domicilio = request.Domicilio ?? "No especificado";
+
         await _clienteData.RegistrarClienteAsync(
             request.Email, request.Password, request.NombreCompleto,
-            request.Cedula, request.Telefono, request.Domicilio);
+            cedula, telefono, domicilio);
     }
 
     public async Task ActualizarClienteAsync(int clienteId, ActualizarClienteRequest request)

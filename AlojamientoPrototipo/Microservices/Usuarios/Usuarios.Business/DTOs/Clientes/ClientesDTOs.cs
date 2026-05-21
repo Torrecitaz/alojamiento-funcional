@@ -8,11 +8,11 @@ public record RegistrarClienteRequest(
     [Required] [EmailAddress] [MaxLength(200)] string Email,
     [Required] [MinLength(8)] [MaxLength(500)] string Password,
     [Required] [MaxLength(200)] string NombreCompleto,
-    [Required] [RegularExpression(@"^\d+$", ErrorMessage = "La cédula debe contener solo números")]
-    [StringLength(10, MinimumLength = 10)] string Cedula,
-    [Required] [RegularExpression(@"^\d+$", ErrorMessage = "El teléfono debe contener solo números")]
-    [MaxLength(20)] string Telefono,
-    [Required] [MaxLength(300)] string Domicilio
+    [RegularExpression(@"^\d+$", ErrorMessage = "La cédula debe contener solo números")]
+    [StringLength(10, MinimumLength = 10)] string? Cedula = null,
+    [RegularExpression(@"^\d+$", ErrorMessage = "El teléfono debe contener solo números")]
+    [MaxLength(20)] string? Telefono = null,
+    [MaxLength(300)] string? Domicilio = null
 );
 
 public record ActualizarClienteRequest(

@@ -32,13 +32,25 @@ if (app.Environment.IsDevelopment())
     });
 }
 
-// Estos endpoints son puramente para generar el Swagger con el contrato público requerido.
-// YARP interceptará la llamada real y la enviará al microservicio correspondiente.
 app.MapPost("/api/v1/alojaexpress/booking", (ApiGateway.Models.CrearReservaRequest request) =>
     Results.Ok(new ApiGateway.Models.ReservaResponse()))
     .WithName("CreateBooking")
     .WithTags("Booking")
     .WithSummary("Crear una nueva reserva")
+    .WithOpenApi();
+
+app.MapPost("/api/v1/mateo-torres/booking", (ApiGateway.Models.CrearReservaRequest request) =>
+    Results.Ok(new ApiGateway.Models.ReservaResponse()))
+    .WithName("CreateBookingMateoTorres")
+    .WithTags("Booking")
+    .WithSummary("Crear una nueva reserva (Mateo Torres)")
+    .WithOpenApi();
+
+app.MapPost("/api/v1/Mateo Torres/booking", (ApiGateway.Models.CrearReservaRequest request) =>
+    Results.Ok(new ApiGateway.Models.ReservaResponse()))
+    .WithName("CreateBookingMateoTorresSpace")
+    .WithTags("Booking")
+    .WithSummary("Crear una nueva reserva (Mateo Torres con espacio)")
     .WithOpenApi();
 
 app.MapReverseProxy();

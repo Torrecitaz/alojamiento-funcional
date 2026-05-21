@@ -9,6 +9,9 @@ public record LoginRequest(
 
 public record LoginResponse(
     string Token,
-    string Rol,
-    string NombreCompleto
+    string NombreCompleto,
+    string Email,
+    string[] Roles,
+    int? ClienteId = null,
+    int? ColaboradorId = null
 );

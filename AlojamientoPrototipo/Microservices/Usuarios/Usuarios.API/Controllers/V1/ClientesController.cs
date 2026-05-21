@@ -30,6 +30,7 @@ public class ClientesController : ControllerBase
         return result == null ? NotFound() : Ok(result);
     }
 
+    [HttpPost]
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar([FromBody] RegistrarClienteRequest request)
     {
