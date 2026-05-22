@@ -73,6 +73,26 @@ services:
           type: web
           name: facturacion-api
           envVarKey: RENDER_EXTERNAL_URL
+      - key: Microservices__UsuariosUrl
+        fromService:
+          type: web
+          name: usuarios-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: Microservices__AlojamientosUrl
+        fromService:
+          type: web
+          name: alojamientos-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: Microservices__ReservasUrl
+        fromService:
+          type: web
+          name: reservas-api
+          envVarKey: RENDER_EXTERNAL_URL
+      - key: Microservices__FacturacionUrl
+        fromService:
+          type: web
+          name: facturacion-api
+          envVarKey: RENDER_EXTERNAL_URL
 
   - type: web
     name: booking-frontend
