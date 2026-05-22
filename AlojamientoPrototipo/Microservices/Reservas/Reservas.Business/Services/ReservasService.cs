@@ -144,4 +144,10 @@ public class ReservasService : IReservasService
         
         // TODO: Publicar evento a RabbitMQ -> EstadoReservaActualizadoEvent
     }
+
+    public async Task<ReservaResponse?> GetByCodigoAsync(string codigo)
+    {
+        var reserva = await _reservasDataService.GetByCodigoAsync(codigo);
+        return reserva != null ? ReservasBusinessMapper.ToResponse(reserva) : null;
+    }
 }

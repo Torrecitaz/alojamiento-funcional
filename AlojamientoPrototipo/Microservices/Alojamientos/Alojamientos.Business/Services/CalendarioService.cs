@@ -85,4 +85,22 @@ public class CalendarioService : ICalendarioService
             throw;
         }
     }
+
+    public async Task LiberarFechasAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin)
+    {
+        if (fechaFin < fechaInicio)
+            throw new BusinessRuleException("La fecha de fin debe ser mayor o igual a la fecha de inicio.");
+
+        await _unitOfWork.BeginTransactionAsync();
+        try
+        {
+            await _calendarioDataService.EliminarFechasAsync(habitacionId, fechaInicio, fechaFin);
+            await _unitOfWork.CommitTransactionAsync();
+        }
+        catch
+        {
+            await _unitOfWork.RollbackTransactionAsync();
+            throw;
+        }
+    }
 }

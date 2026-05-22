@@ -787,7 +787,7 @@ components:
       type: object
       properties:
         success: { type: boolean }
-        data: { nullable: true }
+        data: { type: object, nullable: true }
         message: { type: string }
         errors: { type: array, items: { type: string } }
 
@@ -795,6 +795,6 @@ components:
       type: object
       properties:
         success: { type: boolean, example: false }
-        data: { nullable: true, example: null }
+        data: { type: object, nullable: true, example: null }
         message: { type: string, example: "El recurso solicitado no existe." }
         errors: { type: array, items: { type: string } }

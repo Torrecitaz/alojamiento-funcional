@@ -37,4 +37,11 @@ public class ReservasController : ControllerBase
         await _service.ActualizarEstadoAsync(id, request);
         return NoContent();
     }
+
+    [HttpGet("codigo/{codigo}")]
+    public async Task<IActionResult> GetByCodigo(string codigo)
+    {
+        var result = await _service.GetByCodigoAsync(codigo);
+        return result == null ? NotFound() : Ok(result);
+    }
 }

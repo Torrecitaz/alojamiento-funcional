@@ -50,4 +50,17 @@ public class CalendarioDataService : ICalendarioDataService
             
         return entities.Any();
     }
+
+    public async Task EliminarFechasAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin)
+    {
+        var entities = await _repository.FindAsync(c =>
+            c.HabitacionId == habitacionId &&
+            c.Fecha >= fechaInicio &&
+            c.Fecha <= fechaFin);
+        
+        foreach (var entity in entities)
+        {
+            await _repository.DeleteAsync(entity);
+        }
+    }
 }

@@ -74,4 +74,11 @@ public class ReservasDataService : IReservasDataService
         if (entity == null) throw new KeyNotFoundException($"Reserva {id} no encontrada");
         await _repo.DeleteAsync(entity);
     }
+
+    public async Task<ReservaDataModel?> GetByCodigoAsync(string codigo)
+    {
+        var entities = await _repo.FindAsync(r => r.CodigoReserva == codigo);
+        var entity = entities.FirstOrDefault();
+        return entity != null ? ReservasMapper.ToDataModel(entity) : null;
+    }
 }

@@ -21,3 +21,15 @@ public record BloquearFechasRequest
     [Required]
     public DateOnly FechaFin { get; init; }
 }
+
+public record LiberarFechasRequest
+{
+    [Required]
+    public int HabitacionId { get; init; }
+    
+    [Required]
+    public DateOnly FechaInicio { get; init; }
+    
+    [Required]
+    public DateOnly FechaFin { get; init; }
+}

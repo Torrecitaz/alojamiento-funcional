@@ -21,6 +21,7 @@ public class CalendarioGrpcService : CalendarioGrpc.CalendarioGrpcBase
         {
             var fechaInicio = DateOnly.Parse(request.FechaInicio);
             var fechaFin = DateOnly.Parse(request.FechaFin);
+            var fechaFinExclusiva = fechaFin.AddDays(-1);
 
             // Obtener disponibilidad mensual (para simplicidad de este prototipo, asumiendo que el rango no es mayor a 1 mes, o verificando manualmente)
             // Una mejor aproximación sería crear un método en ICalendarioService que verifique el cruce de fechas directamente.
@@ -32,7 +33,7 @@ public class CalendarioGrpcService : CalendarioGrpc.CalendarioGrpcBase
             var disponibilidad = await _calendarioService.GetDisponibilidadMensualAsync(request.HabitacionId, fechaInicio.Month, fechaInicio.Year);
             
             // Verificamos si hay alguna fecha ocupada/bloqueada en el rango
-            var cruce = disponibilidad.Any(d => d.Fecha >= fechaInicio && d.Fecha <= fechaFin && (d.Estado == "Ocupado" || d.Estado == "Bloqueado"));
+            var cruce = disponibilidad.Any(d => d.Fecha >= fechaInicio && d.Fecha <= fechaFinExclusiva && (d.Estado == "Ocupado" || d.Estado == "Bloqueado"));
 
             if (cruce)
             {

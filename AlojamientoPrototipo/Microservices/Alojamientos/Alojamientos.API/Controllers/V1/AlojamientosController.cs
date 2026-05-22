@@ -1,5 +1,6 @@
 using Alojamientos.Business.DTOs.Alojamientos;
 using Alojamientos.Business.Interfaces;
+using Alojamientos.DataAccess.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Alojamientos.API.Controllers.V1;
@@ -9,8 +10,17 @@ namespace Alojamientos.API.Controllers.V1;
 public class AlojamientosController : ControllerBase
 {
     private readonly IAlojamientosService _service;
+    private readonly ITiposAlojamientoRepository _tiposRepository;
 
-    public AlojamientosController(IAlojamientosService service) => _service = service;
+    public AlojamientosController(IAlojamientosService service, ITiposAlojamientoRepository tiposRepository)
+    {
+        _service = service;
+        _tiposRepository = tiposRepository;
+    }
+
+    [HttpGet("tipos")]
+    public async Task<IActionResult> GetTipos()
+        => Ok(await _tiposRepository.GetAllAsync());
 
     [HttpGet]
     public async Task<IActionResult> GetAll()

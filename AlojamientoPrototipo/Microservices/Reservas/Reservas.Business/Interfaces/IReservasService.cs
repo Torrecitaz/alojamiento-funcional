@@ -9,4 +9,5 @@ public interface IReservasService
     Task<IEnumerable<ReservaResumenResponse>> GetResumenByClienteIdAsync(int clienteId);
     Task<ReservaResponse> CrearAsync(CrearReservaRequest request);
     Task ActualizarEstadoAsync(int id, ActualizarEstadoReservaRequest request);
+    Task<ReservaResponse?> GetByCodigoAsync(string codigo);
 }

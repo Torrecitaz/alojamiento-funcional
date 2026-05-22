@@ -9,6 +9,7 @@ public interface IReservasDataService
     Task<ReservaDataModel> CreateAsync(ReservaDataModel model);
     Task UpdateStatusAsync(int id, string nuevoEstado);
     Task DeleteAsync(int id);
+    Task<ReservaDataModel?> GetByCodigoAsync(string codigo);
 }
 
 public interface IDescuentosDataService
