@@ -22,3 +22,5 @@ appsettings.Development.json
 node_modules/
 
 *.bacpac
+##contrato 
+alojamiento-booking-gateway.yaml    
