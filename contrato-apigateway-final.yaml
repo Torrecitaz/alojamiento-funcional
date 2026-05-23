@@ -27,9 +27,6 @@ tags:
 
 paths:
 
-  # ════════════════════════════════════════
-  # MÓDULO 1: ALOJAMIENTOS (Solo lectura para el cliente)
-  # ════════════════════════════════════════
 
   /api/alojamientos:
     get:
@@ -134,9 +131,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseListTipo'
 
-  # ════════════════════════════════════════
-  # MÓDULO 2: DISPONIBILIDAD (Crítico para Booking)
-  # ════════════════════════════════════════
 
   /api/alojamientos/{id}/disponibilidad:
     get:
@@ -212,9 +206,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  # ════════════════════════════════════════
-  # MÓDULO 3: CLIENTES/USUARIOS
-  # ════════════════════════════════════════
 
   /api/usuarios/clientes/registrar:
     post:
@@ -310,9 +301,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  # ════════════════════════════════════════
-  # MÓDULO 4: RESERVAS
-  # ════════════════════════════════════════
 
   /api/reservas:
     post:
@@ -448,9 +436,6 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  # ════════════════════════════════════════
-  # MÓDULO 5: FACTURACIÓN
-  # ════════════════════════════════════════
 
   /api/facturas/reserva/{reservaId}:
     get:
@@ -517,13 +502,9 @@ paths:
                   - metodoPagoId: 3
                     tipo: "EnSitio"
 
-# ═══════════════════════════════════════════════════════
-# SCHEMAS / MODELOS
-# ═══════════════════════════════════════════════════════
 components:
   schemas:
 
-    # ── Alojamientos ──────────────────────────────────
     AlojamientoDto:
       type: object
       description: |
@@ -569,7 +550,6 @@ components:
         nombre: { type: string, example: "Hotel" }
         descripcion: { type: string, nullable: true }
 
-    # ── Disponibilidad ────────────────────────────────
     DisponibilidadDto:
       type: object
       properties:
@@ -599,7 +579,6 @@ components:
         tieneAireAcondicionado: { type: boolean }
         superficieM2: { type: number, nullable: true }
 
-    # ── Clientes ──────────────────────────────────────
     ClienteDto:
       type: object
       properties:
@@ -643,7 +622,6 @@ components:
           maxLength: 300
           example: "Av. Principal 123, Quito"
 
-    # ── Reservas ──────────────────────────────────────
     ReservaDto:
       type: object
       properties:
@@ -688,7 +666,6 @@ components:
               habitacionId: { type: integer }
               precioPorNoche: { type: number, format: double }
 
-    # ── Facturación ───────────────────────────────────
     FacturaDto:
       type: object
       properties:
@@ -710,7 +687,6 @@ components:
         metodoPagoId: { type: integer }
         tipo: { type: string, enum: [DEBITO, CREDITO, EnSitio] }
 
-    # ── Respuesta Estándar (wrapper común) ────────────
     ApiResponseListAlojamiento:
       type: object
       properties:
