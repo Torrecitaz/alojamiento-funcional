@@ -38,7 +38,7 @@ services:
         fromService:
           type: web
           name: alojamientos-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
 
   - type: web
     name: usuarios-api
@@ -65,42 +65,42 @@ services:
         fromService:
           type: web
           name: alojamientos-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address
         fromService:
           type: web
           name: reservas-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address
         fromService:
           type: web
           name: usuarios-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address
         fromService:
           type: web
           name: facturacion-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: Microservices__UsuariosUrl
         fromService:
           type: web
           name: usuarios-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: Microservices__AlojamientosUrl
         fromService:
           type: web
           name: alojamientos-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: Microservices__ReservasUrl
         fromService:
           type: web
           name: reservas-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
       - key: Microservices__FacturacionUrl
         fromService:
           type: web
           name: facturacion-api
-          envVarKey: RENDER_EXTERNAL_URL
+          property: hostport
 
   - type: web
     name: booking-frontend

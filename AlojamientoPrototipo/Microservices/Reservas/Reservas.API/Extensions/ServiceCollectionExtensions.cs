@@ -30,6 +30,11 @@ public static class ServiceCollectionExtensions
         // ── gRPC Clients ────────────────────────────────
         // Leemos la URL desde configuración o variables de entorno (Render). Fallback a localhost.
         var grpcUrl = configuration["GrpcUrls:Alojamientos"] ?? "http://localhost:5002";
+        if (!grpcUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+            !grpcUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            grpcUrl = "http://" + grpcUrl;
+        }
         services.AddGrpcClient<Shared.Protos.CalendarioGrpc.CalendarioGrpcClient>(o =>
         {
             o.Address = new Uri(grpcUrl);

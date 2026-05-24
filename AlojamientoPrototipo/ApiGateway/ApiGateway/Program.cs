@@ -5,6 +5,31 @@ using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Sanitización de URLs de Microservicios ──
+void SanitizeConfigurationUrl(string key)
+{
+    var value = builder.Configuration[key];
+    if (!string.IsNullOrEmpty(value))
+    {
+        if (!value.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+            !value.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+        {
+            builder.Configuration[key] = "http://" + value;
+        }
+    }
+}
+
+SanitizeConfigurationUrl("Microservices:UsuariosUrl");
+SanitizeConfigurationUrl("Microservices:AlojamientosUrl");
+SanitizeConfigurationUrl("Microservices:ReservasUrl");
+SanitizeConfigurationUrl("Microservices:FacturacionUrl");
+
+SanitizeConfigurationUrl("ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address");
+SanitizeConfigurationUrl("ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address");
+SanitizeConfigurationUrl("ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address");
+SanitizeConfigurationUrl("ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address");
+
+
 // Add services to the container.
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
