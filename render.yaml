@@ -9,7 +9,7 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__ConexionAlojamientos
-        value: Host=aws-1-us-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.tnxniynmtizuymfjyalr;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
+        value: Host=aws-1-us-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.ikzqtnvrghuujtoyvhbi;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
 
   - type: web
     name: facturacion-api
@@ -21,7 +21,7 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__ConexionFacturacion
-        value: Host=aws-1-us-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.tnxniynmtizuymfjyalr;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
+        value: Host=aws-1-us-west-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wtsvyhxggjiiviimdeef;Password=Supabase_1?;SSL Mode=Require;Trust Server Certificate=true
 
   - type: web
     name: reservas-api
@@ -50,7 +50,7 @@ services:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
       - key: ConnectionStrings__ConexionUsuarios
-        value: Host=aws-1-us-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.tnxniynmtizuymfjyalr;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
+        value: Host=aws-1-us-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.bmwqjzacsidbbqcwyfui;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
 
   - type: web
     name: api-gateway
