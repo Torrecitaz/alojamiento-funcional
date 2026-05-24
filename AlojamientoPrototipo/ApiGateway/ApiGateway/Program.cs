@@ -145,11 +145,17 @@ app.MapGet("/api/alojamientos", async (
             .Take(pageSize)
             .ToList();
             
-        var resultList = new List<AlojamientoDto>();
-        foreach (var item in paginatedList)
+        var tasks = paginatedList.Select(async item =>
         {
             decimal precioMin = 0;
-            var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
+            string? imagenUrl = null;
+
+            var roomsTask = alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
+            var photosTask = alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
+
+            await Task.WhenAll(roomsTask, photosTask);
+
+            var roomsResponse = await roomsTask;
             if (roomsResponse.IsSuccessStatusCode)
             {
                 var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
@@ -158,9 +164,8 @@ app.MapGet("/api/alojamientos", async (
                     precioMin = rooms.Min(r => r.PrecioNoche);
                 }
             }
-            
-            string? imagenUrl = null;
-            var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
+
+            var photosResponse = await photosTask;
             if (photosResponse.IsSuccessStatusCode)
             {
                 var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
@@ -169,8 +174,8 @@ app.MapGet("/api/alojamientos", async (
                     imagenUrl = photos.OrderBy(p => p.Orden).First().Url;
                 }
             }
-            
-            resultList.Add(new AlojamientoDto
+
+            return new AlojamientoDto
             {
                 AlojamientoId = item.AlojamientoId,
                 Nombre = item.Nombre,
@@ -185,8 +190,10 @@ app.MapGet("/api/alojamientos", async (
                 TienePiscina = item.TienePiscina,
                 TieneParqueadero = item.TieneParqueadero,
                 Disponible = true
-            });
-        }
+            };
+        });
+
+        var resultList = (await Task.WhenAll(tasks)).ToList();
         
         return Results.Ok(ApiResponse<List<AlojamientoDto>>.Ok(resultList));
     }
