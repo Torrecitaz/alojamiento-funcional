@@ -8,10 +8,10 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://api-gateway.onrender.com
-    description: Producción (Render)
-  - url: http://localhost:5000
-    description: Desarrollo Local
+  - url: https://api-gateway-y75a.onrender.com/api/v1/alojaexpress
+    description: API Gateway en Produccion (Render)
+  - url: http://localhost:5028/api/v1/alojaexpress
+    description: API Gateway Local (Desarrollo)
 
 tags:
   - name: Alojamientos
@@ -28,7 +28,7 @@ tags:
 paths:
 
 
-  /api/alojamientos:
+  /alojamientos:
     get:
       tags: [Alojamientos]
       summary: Buscar alojamientos
@@ -92,7 +92,7 @@ paths:
                     tienePiscina: true
                     disponible: true
 
-  /api/alojamientos/{id}:
+  /alojamientos/{id}:
     get:
       tags: [Alojamientos]
       summary: Detalle completo de un alojamiento
@@ -117,7 +117,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  /api/alojamientos/tipos:
+  /alojamientos/tipos:
     get:
       tags: [Alojamientos]
       summary: Tipos de alojamiento disponibles
@@ -132,7 +132,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponseListTipo'
 
 
-  /api/alojamientos/{id}/disponibilidad:
+  /alojamientos/{id}/disponibilidad:
     get:
       tags: [Disponibilidad]
       summary: Consultar habitaciones disponibles por fechas
@@ -207,7 +207,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponseError'
 
 
-  /api/usuarios/clientes/registrar:
+  /usuarios/clientes/registrar:
     post:
       tags: [Clientes]
       summary: Registrar nuevo huésped
@@ -248,7 +248,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  /api/usuarios/clientes/cedula/{cedula}:
+  /usuarios/clientes/cedula/{cedula}:
     get:
       tags: [Clientes]
       summary: Buscar cliente por cédula
@@ -276,7 +276,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  /api/usuarios/clientes/{id}:
+  /usuarios/clientes/{id}:
     get:
       tags: [Clientes]
       summary: Perfil del huésped
@@ -302,7 +302,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponseError'
 
 
-  /api/reservas:
+  /reservas:
     post:
       tags: [Reservas]
       summary: Crear reserva
@@ -357,7 +357,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  /api/reservas/{codigoReserva}:
+  /reservas/{codigoReserva}:
     get:
       tags: [Reservas]
       summary: Consultar reserva por código
@@ -386,7 +386,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  /api/reservas/cliente/{clienteId}:
+  /reservas/cliente/{clienteId}:
     get:
       tags: [Reservas]
       summary: Historial de reservas del huésped
@@ -411,7 +411,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseListReserva'
 
-  /api/reservas/{id}/cancelar:
+  /reservas/{id}/cancelar:
     patch:
       tags: [Reservas]
       summary: Cancelar reserva
@@ -437,7 +437,7 @@ paths:
                 $ref: '#/components/schemas/ApiResponseError'
 
 
-  /api/facturas/reserva/{reservaId}:
+  /facturas/reserva/{reservaId}:
     get:
       tags: [Facturación]
       summary: Comprobante de pago de una reserva
@@ -477,7 +477,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/ApiResponseError'
 
-  /api/facturas/metodos-pago:
+  /facturas/metodos-pago:
     get:
       tags: [Facturación]
       summary: Métodos de pago disponibles
