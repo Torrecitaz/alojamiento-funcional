@@ -8,9 +8,9 @@ info:
   version: 1.0.0
 
 servers:
-  - url: https://api-gateway-y75a.onrender.com/api/v1/alojaexpress
+  - url: https://api-gateway-y75a.onrender.com/api
     description: API Gateway en Produccion (Render)
-  - url: http://localhost:5028/api/v1/alojaexpress
+  - url: http://localhost:5028/api
     description: API Gateway Local (Desarrollo)
 
 tags:

@@ -1,0 +1,78 @@
+### =================================================================
+### Alojamiento Funcional - Archivo de Pruebas de API
+### =================================================================
+### Este archivo es compatible con la extensión "REST Client" de VS Code.
+### Instala la extensión para ejecutar peticiones directamente desde aquí
+### haciendo clic en el botón "Send Request" que aparece sobre cada método.
+
+# ── VARIABLES DE ENTORNO ──────────────────────────────────────────
+@PROD_HOST = https://api-gateway-y75a.onrender.com
+@LOCAL_HOST = http://localhost:5028
+
+# Cambia esta variable a {{LOCAL_HOST}} cuando pruebes localmente
+@ACTIVE_HOST = {{PROD_HOST}}
+
+
+# ── 1. ALOJAMIENTOS ───────────────────────────────────────────────
+
+### 1.1 Obtener Catálogo (Minimal API con DTO unificado - RECOMENDADO PARA FRONTEND)
+# Esta es la ruta directa que devuelve la estructura de respuesta formal { success: true, data: [...] }
+GET {{ACTIVE_HOST}}/api/alojamientos
+Accept: application/json
+
+### 1.2 Obtener Catálogo (A través de YARP Reverse Proxy)
+# Esta es la ruta del proxy que devuelve el arreglo crudo [] directamente del microservicio
+GET {{ACTIVE_HOST}}/api/v1/alojaexpress/alojamientos
+Accept: application/json
+
+### 1.3 Obtener Catálogo (Ruta interna sin prefijo en YARP)
+GET {{ACTIVE_HOST}}/api/v1/alojamientos
+Accept: application/json
+
+### 1.4 Obtener Detalle de un Alojamiento Específico
+# Reemplaza el '1' por el ID del alojamiento deseado
+GET {{ACTIVE_HOST}}/api/alojamientos/1
+Accept: application/json
+
+### 1.5 Obtener Tipos de Alojamiento Disponibles (Filtros del catálogo)
+GET {{ACTIVE_HOST}}/api/alojamientos/tipos
+Accept: application/json
+
+
+# ── 2. DISPONIBILIDAD ─────────────────────────────────────────────
+
+### 2.1 Consultar Habitaciones Libres por Fechas
+# Valida la disponibilidad de un alojamiento en un rango de fechas determinado
+GET {{ACTIVE_HOST}}/api/alojamientos/1/disponibilidad?fechaDesde=2026-07-01&fechaHasta=2026-07-05&adultos=2&ninos=0
+Accept: application/json
+
+
+# ── 3. CLIENTES / USUARIOS ────────────────────────────────────────
+
+### 3.1 Registrar un Nuevo Cliente (Huésped)
+POST {{ACTIVE_HOST}}/api/usuarios/clientes/registrar
+Content-Type: application/json
+
+{
+  "nombreCompleto": "Juan Perez",
+  "email": "juan.perez.test@email.com",
+  "password": "PasswordSeguro123",
+  "cedula": "1712345678",
+  "telefono": "0991234567",
+  "domicilio": "Av. Principal 123, Quito"
+}
+
+### 3.2 Buscar Cliente por Cédula (Evitar registros duplicados)
+GET {{ACTIVE_HOST}}/api/usuarios/clientes/cedula/1712345678
+Accept: application/json
+
+### 3.3 Obtener Perfil de Cliente por ID
+GET {{ACTIVE_HOST}}/api/usuarios/clientes/1
+Accept: application/json
+
+
+# ── 4. FACTURACIÓN ────────────────────────────────────────────────
+
+### 4.1 Obtener Métodos de Pago Disponibles (Checkout)
+GET {{ACTIVE_HOST}}/api/facturas/metodos-pago
+Accept: application/json
