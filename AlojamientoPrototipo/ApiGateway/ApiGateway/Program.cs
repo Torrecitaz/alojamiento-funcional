@@ -86,6 +86,121 @@ var app = builder.Build();
 
 app.UseCors("AllowAll");
 
+// ── Interceptor de checkout ANTES de YARP ──────────────────────────────────
+// El path /api/v1/reservas/checkout es interceptado por YARP (reservas-internal-route).
+// Este middleware lo captura primero y lo procesa directamente en el ApiGateway.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Method == "POST" &&
+        context.Request.Path.StartsWithSegments("/api/v1/reservas/checkout", StringComparison.OrdinalIgnoreCase))
+    {
+        var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
+        CheckoutBookingRequest? request;
+        try
+        {
+            request = await System.Text.Json.JsonSerializer.DeserializeAsync<CheckoutBookingRequest>(
+                context.Request.Body, jsonOptions);
+        }
+        catch
+        {
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Payload inválido." });
+            return;
+        }
+
+        if (request == null || string.IsNullOrWhiteSpace(request.IdCarrito) || string.IsNullOrWhiteSpace(request.MetodoPagoId))
+        {
+            context.Response.StatusCode = 400;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "idCarrito y metodoPagoId son requeridos." });
+            return;
+        }
+
+        var reservasClient = httpClientFactory.CreateClient("Reservas");
+        ReservaInternalResponse? internalRes = null;
+
+        if (int.TryParse(request.IdCarrito, out var reservaIdInt))
+        {
+            var resById = await reservasClient.GetAsync($"api/v1/Reservas/{reservaIdInt}");
+            if (resById.IsSuccessStatusCode)
+                internalRes = await resById.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
+        }
+
+        if (internalRes == null)
+        {
+            var resByCodigo = await reservasClient.GetAsync($"api/v1/Reservas/codigo/{request.IdCarrito}");
+            if (resByCodigo.IsSuccessStatusCode)
+                internalRes = await resByCodigo.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
+        }
+
+        if (internalRes == null)
+        {
+            context.Response.StatusCode = 404;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Reserva no encontrada con el idCarrito proporcionado." });
+            return;
+        }
+
+        var monto = internalRes.Total;
+        var detalles = internalRes.DetallesHabitacion.Select(d => new
+        {
+            descripcion = $"Habitación {d.HabitacionId} - {d.NumNoches} noche(s)",
+            cantidad = d.NumNoches,
+            precioUnitario = d.PrecioPorNoche
+        }).ToList();
+
+        var facturacionClient = httpClientFactory.CreateClient("Facturacion");
+        var crearFacturaReq = new
+        {
+            reservaId = internalRes.ReservaId,
+            metodoPagoExternalId = request.MetodoPagoId,
+            monto = monto,
+            fechaPago = DateTime.UtcNow,
+            detalles = detalles
+        };
+
+        var factResponse = await facturacionClient.PostAsJsonAsync("api/v1/Facturas", crearFacturaReq);
+        if (!factResponse.IsSuccessStatusCode)
+        {
+            var errBody = await factResponse.Content.ReadAsStringAsync();
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Error al crear factura: {errBody}", reserva_id = internalRes.ReservaId.ToString() });
+            return;
+        }
+
+        var factura = await factResponse.Content.ReadFromJsonAsync<FacturaInternalResponse>(jsonOptions);
+        if (factura == null)
+        {
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "No se pudo deserializar la factura.", reserva_id = internalRes.ReservaId.ToString() });
+            return;
+        }
+
+        var aprobarResponse = await facturacionClient.PatchAsync($"api/v1/Facturas/{factura.FacturaId}/aprobar", null);
+        if (!aprobarResponse.IsSuccessStatusCode)
+        {
+            var errBody = await aprobarResponse.Content.ReadAsStringAsync();
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Error al aprobar factura: {errBody}", reserva_id = internalRes.ReservaId.ToString() });
+            return;
+        }
+
+        context.Response.StatusCode = 200;
+        await context.Response.WriteAsJsonAsync(new CheckoutBookingResponse
+        {
+            ReservaId = internalRes.ReservaId,
+            CodigoReserva = internalRes.CodigoReserva,
+            FacturaId = factura.FacturaId,
+            Monto = monto,
+            Moneda = request.Currency,
+            Estado = "COMPLETADO"
+        });
+        return;
+    }
+
+    await next(context);
+});
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -1065,6 +1180,8 @@ app.MapGet("/api/facturas/metodos-pago", async (
 // ═══════════════════════════════════════════════════
 
 // 14. Checkout de Booking: recibe idCarrito (ReservaId) + metodoPagoId (UUID externo)
+// Registrado en AMBOS paths: el exacto que llama Booking (/api/v1/reservas/checkout)
+// y un alias sin v1. El Minimal API exacto tiene prioridad sobre la ruta wildcard de YARP.
 app.MapPost("/api/v1/reservas/checkout", async (
     CheckoutBookingRequest request,
     IHttpClientFactory httpClientFactory) =>
