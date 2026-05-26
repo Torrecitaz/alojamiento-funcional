@@ -16,4 +16,10 @@ public class MetodosPagoDataService : IMetodosPagoDataService
         var entities = await _repo.GetAllAsync();
         return entities.Select(FacturacionMapper.ToDataModel);
     }
+
+    public async Task<MetodoPagoClienteDataModel?> GetByExternalIdAsync(Guid externalId)
+    {
+        var entity = await _repo.GetByExternalIdAsync(externalId);
+        return entity == null ? null : FacturacionMapper.ToDataModel(entity);
+    }
 }

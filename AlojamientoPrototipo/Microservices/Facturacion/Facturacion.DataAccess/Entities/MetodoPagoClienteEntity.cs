@@ -12,6 +12,9 @@ public class MetodoPagoClienteEntity
     [Required, MaxLength(30)]
     public string Tipo { get; set; } = string.Empty; // DEBITO, CREDITO, EnSitio
 
+    // ID externo (ej: UUID de Booking) para resolución sin traducción manual
+    public Guid? ExternalId { get; set; }
+
     // Navegación
     public ICollection<FacturaEntity> Facturas { get; set; } = new List<FacturaEntity>();
 }

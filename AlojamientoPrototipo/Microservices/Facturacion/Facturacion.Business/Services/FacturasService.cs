@@ -15,17 +15,20 @@ public class FacturasService : IFacturasService
     private readonly IAuditoriaDataService _auditoriaDataService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IMetodosPagoDataService _metodosPagoDataService;
 
     public FacturasService(
         IFacturasDataService facturasDataService,
         IAuditoriaDataService auditoriaDataService,
         IUnitOfWork unitOfWork,
-        IPublishEndpoint publishEndpoint)
+        IPublishEndpoint publishEndpoint,
+        IMetodosPagoDataService metodosPagoDataService)
     {
         _facturasDataService = facturasDataService;
         _auditoriaDataService = auditoriaDataService;
         _unitOfWork = unitOfWork;
         _publishEndpoint = publishEndpoint;
+        _metodosPagoDataService = metodosPagoDataService;
     }
 
     public async Task<FacturaResponse> GetByIdAsync(int id)
@@ -56,10 +59,23 @@ public class FacturasService : IFacturasService
             throw new MontoInvalidoException($"El monto total ({request.Monto}) no coincide con la suma de los detalles ({totalCalculado}).");
         }
 
+        // Resolver MetodoPagoId: se acepta el ID interno (int) o el ExternalId (UUID de Booking).
+        int? metodoPagoId = request.MetodoPagoId;
+        if (metodoPagoId == null && !string.IsNullOrWhiteSpace(request.MetodoPagoExternalId))
+        {
+            if (!Guid.TryParse(request.MetodoPagoExternalId, out var externalGuid))
+                throw new ArgumentException($"MetodoPagoExternalId '{request.MetodoPagoExternalId}' no es un GUID válido.");
+
+            var metodoPago = await _metodosPagoDataService.GetByExternalIdAsync(externalGuid)
+                ?? throw new KeyNotFoundException($"No se encontró un método de pago con ExternalId '{request.MetodoPagoExternalId}'.");
+
+            metodoPagoId = metodoPago.MetodoPagoId;
+        }
+
         var model = new FacturaDataModel
         {
             ReservaId = request.ReservaId,
-            MetodoPagoId = request.MetodoPagoId,
+            MetodoPagoId = metodoPagoId,
             Monto = request.Monto,
             FechaPago = request.FechaPago,
             Estado = request.FechaPago.HasValue ? "Pagado" : "Pendiente",

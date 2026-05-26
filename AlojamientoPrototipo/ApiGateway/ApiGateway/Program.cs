@@ -1059,6 +1059,120 @@ app.MapGet("/api/facturas/metodos-pago", async (
 .WithTags("Facturación")
 .WithOpenApi();
 
+
+// ═══════════════════════════════════════════════════
+// MÓDULO 6: CHECKOUT (endpoint que consume Booking)
+// ═══════════════════════════════════════════════════
+
+// 14. Checkout de Booking: recibe idCarrito (ReservaId) + metodoPagoId (UUID externo)
+app.MapPost("/api/v1/reservas/checkout", async (
+    CheckoutBookingRequest request,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        // ── 1. Resolver ReservaId ──────────────────────────────────────────────
+        // idCarrito puede ser el ReservaId como entero (string) o el CodigoReserva.
+        var reservasClient = httpClientFactory.CreateClient("Reservas");
+        ReservaInternalResponse? internalRes = null;
+
+        if (int.TryParse(request.IdCarrito, out var reservaIdInt))
+        {
+            var resById = await reservasClient.GetAsync($"api/v1/Reservas/{reservaIdInt}");
+            if (resById.IsSuccessStatusCode)
+                internalRes = await resById.Content.ReadFromJsonAsync<ReservaInternalResponse>();
+        }
+
+        if (internalRes == null)
+        {
+            // Intentar buscar por CodigoReserva (por si Booking envía el código)
+            var resByCodigo = await reservasClient.GetAsync($"api/v1/Reservas/codigo/{request.IdCarrito}");
+            if (resByCodigo.IsSuccessStatusCode)
+                internalRes = await resByCodigo.Content.ReadFromJsonAsync<ReservaInternalResponse>();
+        }
+
+        if (internalRes == null)
+        {
+            return Results.Json(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Reserva no encontrada con el idCarrito proporcionado." }, statusCode: 404);
+        }
+
+        // ── 2. Calcular monto de la factura ────────────────────────────────────
+        var monto = internalRes.Total;
+        var detalles = internalRes.DetallesHabitacion.Select(d => new
+        {
+            descripcion = $"Habitación {d.HabitacionId} - {d.NumNoches} noche(s)",
+            cantidad = d.NumNoches,
+            precioUnitario = d.PrecioPorNoche
+        }).ToList();
+
+        // ── 3. Crear factura en Facturación (resuelve UUID → MetodoPagoId) ─────
+        var facturacionClient = httpClientFactory.CreateClient("Facturacion");
+        var crearFacturaReq = new
+        {
+            reservaId = internalRes.ReservaId,
+            metodoPagoExternalId = request.MetodoPagoId,  // UUID string de Booking
+            monto = monto,
+            fechaPago = DateTime.UtcNow,
+            detalles = detalles
+        };
+
+        var factResponse = await facturacionClient.PostAsJsonAsync("api/v1/Facturas", crearFacturaReq);
+        if (!factResponse.IsSuccessStatusCode)
+        {
+            var errBody = await factResponse.Content.ReadAsStringAsync();
+            return Results.Json(new
+            {
+                success = false,
+                estado = "FALLIDA_PROVEEDOR",
+                mensaje = $"Error al crear factura: {errBody}",
+                reserva_id = internalRes.ReservaId.ToString()
+            }, statusCode: 502);
+        }
+
+        var factura = await factResponse.Content.ReadFromJsonAsync<FacturaInternalResponse>();
+        if (factura == null)
+        {
+            return Results.Json(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "No se pudo deserializar la factura creada.", reserva_id = internalRes.ReservaId.ToString() }, statusCode: 502);
+        }
+
+        // ── 4. Aprobar la factura (dispara evento RabbitMQ → Reserva confirmada) 
+        var aprobarResponse = await facturacionClient.PatchAsync($"api/v1/Facturas/{factura.FacturaId}/aprobar", null);
+        if (!aprobarResponse.IsSuccessStatusCode)
+        {
+            var errBody = await aprobarResponse.Content.ReadAsStringAsync();
+            return Results.Json(new
+            {
+                success = false,
+                estado = "FALLIDA_PROVEEDOR",
+                mensaje = $"Error al aprobar factura: {errBody}",
+                reserva_id = internalRes.ReservaId.ToString()
+            }, statusCode: 502);
+        }
+
+        return Results.Ok(new CheckoutBookingResponse
+        {
+            ReservaId = internalRes.ReservaId,
+            CodigoReserva = internalRes.CodigoReserva,
+            FacturaId = factura.FacturaId,
+            Monto = monto,
+            Moneda = request.Currency,
+            Estado = "COMPLETADO"
+        });
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(new
+        {
+            success = false,
+            estado = "FALLIDA_PROVEEDOR",
+            mensaje = ex.Message
+        }, statusCode: 500);
+    }
+})
+.WithName("CheckoutBooking")
+.WithTags("Reservas")
+.WithOpenApi();
+
 app.MapReverseProxy();
 
 app.Run();

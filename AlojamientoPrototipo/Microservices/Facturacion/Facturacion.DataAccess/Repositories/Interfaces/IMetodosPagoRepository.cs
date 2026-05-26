@@ -2,4 +2,7 @@ using Facturacion.DataAccess.Entities;
 
 namespace Facturacion.DataAccess.Repositories.Interfaces;
 
-public interface IMetodosPagoRepository : IRepositoryBase<MetodoPagoClienteEntity> { }
+public interface IMetodosPagoRepository : IRepositoryBase<MetodoPagoClienteEntity>
+{
+    Task<MetodoPagoClienteEntity?> GetByExternalIdAsync(Guid externalId);
+}

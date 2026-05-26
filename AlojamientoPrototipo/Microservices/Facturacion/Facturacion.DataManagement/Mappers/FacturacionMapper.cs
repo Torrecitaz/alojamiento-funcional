@@ -8,7 +8,8 @@ public static class FacturacionMapper
     public static MetodoPagoClienteDataModel ToDataModel(MetodoPagoClienteEntity entity) => new()
     {
         MetodoPagoId = entity.MetodoPagoId,
-        Tipo = entity.Tipo
+        Tipo = entity.Tipo,
+        ExternalId = entity.ExternalId
     };
 
     public static DetalleFacturaDataModel ToDataModel(DetalleFacturaEntity entity) => new()

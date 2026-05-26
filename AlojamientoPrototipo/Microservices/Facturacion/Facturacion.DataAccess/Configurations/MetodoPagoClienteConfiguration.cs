@@ -12,5 +12,8 @@ public class MetodoPagoClienteConfiguration : IEntityTypeConfiguration<MetodoPag
         builder.HasKey(m => m.MetodoPagoId);
 
         builder.Property(m => m.Tipo).HasMaxLength(30).IsRequired();
+
+        builder.Property(m => m.ExternalId).IsRequired(false);
+        builder.HasIndex(m => m.ExternalId).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
     }
 }

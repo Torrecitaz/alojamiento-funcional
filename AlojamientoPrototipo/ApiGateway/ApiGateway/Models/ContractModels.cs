@@ -197,3 +197,32 @@ public record MetodoPagoDto
     public int MetodoPagoId { get; init; }
     public string Tipo { get; init; } = string.Empty;
 }
+
+/// <summary>
+/// Payload que envía Booking al hacer checkout.
+/// idCarrito = codigoReserva (UUID string).
+/// metodoPagoId = ExternalId del método de pago (UUID string registrado en la BD).
+/// </summary>
+public record CheckoutBookingRequest
+{
+    /// <summary>UUID del carrito/reserva en Booking (equivale al ReservaId interno).</summary>
+    [Required]
+    public string IdCarrito { get; init; } = string.Empty;
+
+    /// <summary>UUID del método de pago en Booking (se resuelve al MetodoPagoId interno).</summary>
+    [Required]
+    public string MetodoPagoId { get; init; } = string.Empty;
+
+    /// <summary>Moneda solicitada (por defecto USD).</summary>
+    public string Currency { get; init; } = "USD";
+}
+
+public record CheckoutBookingResponse
+{
+    public int ReservaId { get; init; }
+    public string CodigoReserva { get; init; } = string.Empty;
+    public int FacturaId { get; init; }
+    public decimal Monto { get; init; }
+    public string Moneda { get; init; } = "USD";
+    public string Estado { get; init; } = string.Empty;
+}
