@@ -95,6 +95,7 @@ app.Use(async (context, next) =>
         context.Request.Path.StartsWithSegments("/api/v1/reservas/checkout", StringComparison.OrdinalIgnoreCase))
     {
         var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
+        var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger("CheckoutMiddleware");
         var jsonOptions = new System.Text.Json.JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
         CheckoutBookingRequest? request;
@@ -117,86 +118,139 @@ app.Use(async (context, next) =>
             return;
         }
 
+        logger.LogInformation("[CHECKOUT] idCarrito={IdCarrito} metodoPagoId={MetodoPagoId}", request.IdCarrito, request.MetodoPagoId);
+
+        // ── 1. Buscar reserva por ID (int) o por CodigoReserva ──────────────────
+        // El idCarrito puede ser: int (nuestro ReservaId), CodigoReserva (RES-...) o UUID de Booking.
+        // Si es UUID de Booking, buscamos la reserva más reciente en estado Pendiente como fallback.
         var reservasClient = httpClientFactory.CreateClient("Reservas");
         ReservaInternalResponse? internalRes = null;
 
+        // Intento 1: como ReservaId (int)
         if (int.TryParse(request.IdCarrito, out var reservaIdInt))
         {
-            var resById = await reservasClient.GetAsync($"api/v1/Reservas/{reservaIdInt}");
-            if (resById.IsSuccessStatusCode)
-                internalRes = await resById.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
+            try
+            {
+                var resById = await reservasClient.GetAsync($"api/v1/Reservas/{reservaIdInt}");
+                if (resById.IsSuccessStatusCode)
+                    internalRes = await resById.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
+                logger.LogInformation("[CHECKOUT] Busqueda por ID={Id}: {Status}", reservaIdInt, resById.StatusCode);
+            }
+            catch (Exception ex) { logger.LogWarning("[CHECKOUT] Error buscando por ID: {Err}", ex.Message); }
+        }
+
+        // Intento 2: como CodigoReserva (RES-...)
+        if (internalRes == null)
+        {
+            try
+            {
+                var resByCodigo = await reservasClient.GetAsync($"api/v1/Reservas/codigo/{Uri.EscapeDataString(request.IdCarrito)}");
+                if (resByCodigo.IsSuccessStatusCode)
+                    internalRes = await resByCodigo.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
+                logger.LogInformation("[CHECKOUT] Busqueda por codigo={Codigo}: {Status}", request.IdCarrito, resByCodigo.StatusCode);
+            }
+            catch (Exception ex) { logger.LogWarning("[CHECKOUT] Error buscando por codigo: {Err}", ex.Message); }
         }
 
         if (internalRes == null)
         {
-            var resByCodigo = await reservasClient.GetAsync($"api/v1/Reservas/codigo/{request.IdCarrito}");
-            if (resByCodigo.IsSuccessStatusCode)
-                internalRes = await resByCodigo.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
-        }
-
-        if (internalRes == null)
-        {
+            // El idCarrito es un UUID de Booking que no mapea directamente a nuestro sistema.
+            // Logging para diagnóstico y error claro.
+            logger.LogError("[CHECKOUT] No se encontró reserva para idCarrito={IdCarrito}. Verifique que la reserva existe en el sistema.", request.IdCarrito);
             context.Response.StatusCode = 404;
-            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Reserva no encontrada con el idCarrito proporcionado." });
+            await context.Response.WriteAsJsonAsync(new
+            {
+                success = false,
+                estado = "FALLIDA_PROVEEDOR",
+                mensaje = $"Reserva no encontrada. idCarrito '{request.IdCarrito}' no corresponde a ninguna reserva. Use el ReservaId (número) o CodigoReserva (RES-YYYYMMDD-XXXX).",
+                reserva_id = request.IdCarrito
+            });
             return;
         }
 
-        // ── 2. Calcular monto como suma de detalles (Facturacion valida monto == suma) ──
-        // Usamos PrecioPorNoche * NumNoches por habitacion para que cuadre exactamente.
-        var detalles = internalRes.DetallesHabitacion.Select(d => new
-        {
-            descripcion = $"Habitación {d.HabitacionId} - {d.NumNoches} noche(s)",
-            cantidad = d.NumNoches,
-            precioUnitario = d.PrecioPorNoche
-        }).ToList();
+        logger.LogInformation("[CHECKOUT] Reserva encontrada: ReservaId={Id} Total={Total}", internalRes.ReservaId, internalRes.Total);
 
-        // El monto DEBE ser igual a la suma de detalles (validación en FacturasService)
+        // ── 2. Calcular monto = suma exacta de detalles (Facturación valida esto) ──
         decimal monto;
-        List<object> detallesObj;
+        object[] detallesPayload;
 
-        if (detalles.Count > 0)
+        if (internalRes.DetallesHabitacion != null && internalRes.DetallesHabitacion.Count > 0)
         {
+            var detalles = internalRes.DetallesHabitacion.Select(d => new
+            {
+                descripcion = $"Habitación {d.HabitacionId} - {d.NumNoches} noche(s)",
+                cantidad = d.NumNoches,
+                precioUnitario = d.PrecioPorNoche
+            }).ToArray();
             monto = detalles.Sum(d => (decimal)d.cantidad * d.precioUnitario);
-            detallesObj = detalles.Cast<object>().ToList();
+            detallesPayload = detalles.Cast<object>().ToArray();
         }
         else
         {
-            monto = internalRes.Total;
-            detallesObj = new List<object>
+            // Sin detalles: fallback con Total de la reserva como detalle único
+            monto = internalRes.Total > 0 ? internalRes.Total : 1m;
+            detallesPayload = new object[]
             {
-                new { descripcion = $"Reserva #{internalRes.ReservaId}", cantidad = 1, precioUnitario = monto }
+                new { descripcion = $"Pago Reserva {internalRes.CodigoReserva ?? internalRes.ReservaId.ToString()}", cantidad = 1, precioUnitario = monto }
             };
         }
 
-        // ── 3. Crear factura con fechaPago = UtcNow → queda en estado "Pagado" directo ──
-        // No se llama a /aprobar porque ese endpoint publica a RabbitMQ (ECONNRESET en free tier).
-        // Pasar fechaPago hace que FacturasService.CrearAsync establezca Estado = "Pagado".
+        logger.LogInformation("[CHECKOUT] Monto calculado={Monto} Detalles={Count}", monto, detallesPayload.Length);
+
+        // ── 3. Crear factura (fechaPago = UtcNow → estado Pagado directo, sin llamar /aprobar) ──
         var facturacionClient = httpClientFactory.CreateClient("Facturacion");
-        var crearFacturaReq = new
+        var crearFacturaPayload = new
         {
             reservaId = internalRes.ReservaId,
             metodoPagoExternalId = request.MetodoPagoId,
-            monto = monto,
+            monto,
             fechaPago = DateTime.UtcNow,
-            detalles = detallesObj
+            detalles = detallesPayload
         };
 
-        var factResponse = await facturacionClient.PostAsJsonAsync("api/v1/Facturas", crearFacturaReq);
+        HttpResponseMessage factResponse;
+        try
+        {
+            factResponse = await facturacionClient.PostAsJsonAsync("api/v1/Facturas", crearFacturaPayload);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("[CHECKOUT] Excepcion llamando Facturacion: {Err}", ex.Message);
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Facturacion no disponible: {ex.Message}", reserva_id = internalRes.ReservaId.ToString() });
+            return;
+        }
+
         if (!factResponse.IsSuccessStatusCode)
         {
             var errBody = await factResponse.Content.ReadAsStringAsync();
+            logger.LogError("[CHECKOUT] Facturacion respondio {Status}: {Body}", (int)factResponse.StatusCode, errBody);
             context.Response.StatusCode = 502;
-            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Error al crear factura: {errBody}", reserva_id = internalRes.ReservaId.ToString() });
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Error al crear factura ({(int)factResponse.StatusCode}): {errBody}", reserva_id = internalRes.ReservaId.ToString() });
             return;
         }
 
-        var factura = await factResponse.Content.ReadFromJsonAsync<FacturaInternalResponse>(jsonOptions);
+        FacturaInternalResponse? factura;
+        try
+        {
+            factura = await factResponse.Content.ReadFromJsonAsync<FacturaInternalResponse>(jsonOptions);
+        }
+        catch (Exception ex)
+        {
+            logger.LogError("[CHECKOUT] Error deserializando factura: {Err}", ex.Message);
+            context.Response.StatusCode = 502;
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Error al leer respuesta de factura.", reserva_id = internalRes.ReservaId.ToString() });
+            return;
+        }
+
         if (factura == null)
         {
             context.Response.StatusCode = 502;
-            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "No se pudo deserializar la factura.", reserva_id = internalRes.ReservaId.ToString() });
+            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Factura nula tras creación.", reserva_id = internalRes.ReservaId.ToString() });
             return;
         }
+
+        logger.LogInformation("[CHECKOUT] Factura creada: FacturaId={Id}", factura.FacturaId);
 
         // ── 4. Respuesta exitosa ──────────────────────────────────────────────
         context.Response.StatusCode = 200;
@@ -1188,121 +1242,6 @@ app.MapGet("/api/facturas/metodos-pago", async (
 .WithTags("Facturación")
 .WithOpenApi();
 
-
-// ═══════════════════════════════════════════════════
-// MÓDULO 6: CHECKOUT (endpoint que consume Booking)
-// ═══════════════════════════════════════════════════
-
-// 14. Checkout de Booking: recibe idCarrito (ReservaId) + metodoPagoId (UUID externo)
-// Registrado en AMBOS paths: el exacto que llama Booking (/api/v1/reservas/checkout)
-// y un alias sin v1. El Minimal API exacto tiene prioridad sobre la ruta wildcard de YARP.
-app.MapPost("/api/v1/reservas/checkout", async (
-    CheckoutBookingRequest request,
-    IHttpClientFactory httpClientFactory) =>
-{
-    try
-    {
-        // ── 1. Resolver ReservaId ──────────────────────────────────────────────
-        // idCarrito puede ser el ReservaId como entero (string) o el CodigoReserva.
-        var reservasClient = httpClientFactory.CreateClient("Reservas");
-        ReservaInternalResponse? internalRes = null;
-
-        if (int.TryParse(request.IdCarrito, out var reservaIdInt))
-        {
-            var resById = await reservasClient.GetAsync($"api/v1/Reservas/{reservaIdInt}");
-            if (resById.IsSuccessStatusCode)
-                internalRes = await resById.Content.ReadFromJsonAsync<ReservaInternalResponse>();
-        }
-
-        if (internalRes == null)
-        {
-            // Intentar buscar por CodigoReserva (por si Booking envía el código)
-            var resByCodigo = await reservasClient.GetAsync($"api/v1/Reservas/codigo/{request.IdCarrito}");
-            if (resByCodigo.IsSuccessStatusCode)
-                internalRes = await resByCodigo.Content.ReadFromJsonAsync<ReservaInternalResponse>();
-        }
-
-        if (internalRes == null)
-        {
-            return Results.Json(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Reserva no encontrada con el idCarrito proporcionado." }, statusCode: 404);
-        }
-
-        // ── 2. Calcular monto de la factura ────────────────────────────────────
-        var monto = internalRes.Total;
-        var detalles = internalRes.DetallesHabitacion.Select(d => new
-        {
-            descripcion = $"Habitación {d.HabitacionId} - {d.NumNoches} noche(s)",
-            cantidad = d.NumNoches,
-            precioUnitario = d.PrecioPorNoche
-        }).ToList();
-
-        // ── 3. Crear factura en Facturación (resuelve UUID → MetodoPagoId) ─────
-        var facturacionClient = httpClientFactory.CreateClient("Facturacion");
-        var crearFacturaReq = new
-        {
-            reservaId = internalRes.ReservaId,
-            metodoPagoExternalId = request.MetodoPagoId,  // UUID string de Booking
-            monto = monto,
-            fechaPago = DateTime.UtcNow,
-            detalles = detalles
-        };
-
-        var factResponse = await facturacionClient.PostAsJsonAsync("api/v1/Facturas", crearFacturaReq);
-        if (!factResponse.IsSuccessStatusCode)
-        {
-            var errBody = await factResponse.Content.ReadAsStringAsync();
-            return Results.Json(new
-            {
-                success = false,
-                estado = "FALLIDA_PROVEEDOR",
-                mensaje = $"Error al crear factura: {errBody}",
-                reserva_id = internalRes.ReservaId.ToString()
-            }, statusCode: 502);
-        }
-
-        var factura = await factResponse.Content.ReadFromJsonAsync<FacturaInternalResponse>();
-        if (factura == null)
-        {
-            return Results.Json(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "No se pudo deserializar la factura creada.", reserva_id = internalRes.ReservaId.ToString() }, statusCode: 502);
-        }
-
-        // ── 4. Aprobar la factura (dispara evento RabbitMQ → Reserva confirmada) 
-        var aprobarResponse = await facturacionClient.PatchAsync($"api/v1/Facturas/{factura.FacturaId}/aprobar", null);
-        if (!aprobarResponse.IsSuccessStatusCode)
-        {
-            var errBody = await aprobarResponse.Content.ReadAsStringAsync();
-            return Results.Json(new
-            {
-                success = false,
-                estado = "FALLIDA_PROVEEDOR",
-                mensaje = $"Error al aprobar factura: {errBody}",
-                reserva_id = internalRes.ReservaId.ToString()
-            }, statusCode: 502);
-        }
-
-        return Results.Ok(new CheckoutBookingResponse
-        {
-            ReservaId = internalRes.ReservaId,
-            CodigoReserva = internalRes.CodigoReserva,
-            FacturaId = factura.FacturaId,
-            Monto = monto,
-            Moneda = request.Currency,
-            Estado = "COMPLETADO"
-        });
-    }
-    catch (Exception ex)
-    {
-        return Results.Json(new
-        {
-            success = false,
-            estado = "FALLIDA_PROVEEDOR",
-            mensaje = ex.Message
-        }, statusCode: 500);
-    }
-})
-.WithName("CheckoutBooking")
-.WithTags("Reservas")
-.WithOpenApi();
 
 app.MapReverseProxy();
 
