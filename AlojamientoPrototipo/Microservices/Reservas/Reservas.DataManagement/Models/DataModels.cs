@@ -34,6 +34,7 @@ public class ReservaDataModel
     public decimal Total { get; set; }
     public string Estado { get; set; } = string.Empty;
     public string CodigoReserva { get; set; } = string.Empty;
+    public Guid? ExternalId { get; set; } // UUID externo de Booking
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaModificacion { get; set; }
 

@@ -34,6 +34,9 @@ public class ReservaEntity
     [Required, MaxLength(20)]
     public string CodigoReserva { get; set; } = string.Empty;
 
+    // UUID externo (ej: ID de reserva en Booking) para buscar sin traducción manual
+    public Guid? ExternalId { get; set; }
+
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
     public DateTime? FechaModificacion { get; set; }
 

@@ -122,17 +122,20 @@ ON CONFLICT (Nombre) DO NOTHING;
 INSERT INTO Alojamientos (SocioId, TipoAlojamientoId, Ciudad, Nombre, Descripcion, Direccion, Estrellas, CalificacionPromedio, TotalResenas, AdmiteMascotas, TienePiscina, TieneParqueadero, Estado) VALUES
 (1, 2, 'Santa Cruz', 'Royal Galapagos Beach Resort', 'Disfrute de una experiencia de lujo inigualable frente al mar en las Islas Galapagos. Habitaciones con vista al oceano, spa completo, restaurante gourmet y acceso directo a la playa de arena blanca.', 'Av. Charles Darwin km 4.5, Puerto Ayora', 5, 4.90, 48, TRUE, TRUE, TRUE, 'Activo'),
 (1, 1, 'Quito', 'Hotel Vista Hermosa Historic Center', 'Un hotel boutique ubicado en el corazon del Centro Historico de Quito. Ofrece terrazas con vistas panoramicas a las iglesias coloniales, arquitectura del siglo XVII restaurada y un ambiente intimo y acogedor.', 'Calle Chile 456 y Guayaquil, Centro Historico', 4, 4.70, 85, FALSE, FALSE, TRUE, 'Activo'),
-(1, 3, 'Tena', 'Selva Mistica Eco-Lodge', 'Sumerjase en la majestuosidad de la Amazonia ecuatoriana. Hospedaje ecologico construido con materiales locales sustentables, excursiones guiadas de observacion de flora y fauna, y cocina amazonica organica.', 'Km 12 Via al Puyo, Margen del Rio Napo', 4, 4.85, 32, TRUE, TRUE, TRUE, 'Activo')
+(1, 3, 'Tena', 'Selva Mistica Eco-Lodge', 'Sumerjase en la majestuosidad de la Amazonia ecuatoriana. Hospedaje ecologico construido con materiales locales sustentables, excursiones guiadas de observacion de flora y fauna, y cocina amazonica organica.', 'Km 12 Via al Puyo, Margen del Rio Napo', 4, 4.85, 32, TRUE, TRUE, TRUE, 'Activo'),
+(1, 1, 'Guayaquil', 'Reto2_Mateo_Torres', 'Alojamiento moderno y funcional, disenado especialmente para cumplir con el Reto 2. Cuenta con todas las comodidades tecnologicas y servicios premium en una ubicacion privilegiada.', 'Av. Francisco de Orellana 123', 5, 5.00, 10, TRUE, TRUE, TRUE, 'Activo')
 ON CONFLICT DO NOTHING;
 
--- Insertar Fotos para Alojamientos (IDs correspondientes 1, 2 y 3)
+-- Insertar Fotos para Alojamientos (IDs correspondientes 1, 2, 3 y 4)
 INSERT INTO AlojamientoFotos (AlojamientoId, Url, Orden, Descripcion) VALUES
 (1, 'https://images.unsplash.com/photo-1571003123894-1f0594d2b5d9?auto=format&fit=crop&w=800&q=80', 1, 'Vista aerea de la piscina infinity frente al mar'),
 (1, 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=800&q=80', 2, 'Fachada principal y jardines tropicales'),
 (2, 'https://images.unsplash.com/photo-1543968332-f99478b1ebdc?auto=format&fit=crop&w=800&q=80', 1, 'Fachada colonial iluminada por la noche'),
 (2, 'https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?auto=format&fit=crop&w=800&q=80', 2, 'Terraza panoramica con vistas a la Basilica'),
 (3, 'https://images.unsplash.com/photo-1470770841072-f978cf4d019e?auto=format&fit=crop&w=800&q=80', 1, 'Bungalows construidos sobre el dosel de la selva'),
-(3, 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', 2, 'Rio Napo desde la terraza principal')
+(3, 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=800&q=80', 2, 'Rio Napo desde la terraza principal'),
+(4, 'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=800&q=80', 1, 'Vista exterior de Reto2_Mateo_Torres'),
+(4, 'https://images.unsplash.com/photo-1566665797739-1674de7a421a?auto=format&fit=crop&w=800&q=80', 2, 'Habitacion de lujo en Reto2_Mateo_Torres')
 ON CONFLICT DO NOTHING;
 
 -- Insertar Habitaciones
@@ -141,7 +144,9 @@ INSERT INTO Habitaciones (AlojamientoId, Nombre, Descripcion, CapacidadAdultos, 
 (1, 'Garden Suite', 'Elegante suite rodeada de jardines exoticos y palmeras. Cuenta con cama king size, bano privado con ducha tipo lluvia y balcon privado.', 2, 0, 1, 1, FALSE, TRUE, 65.00, 180.00),
 (2, 'Habitacion Colonial Superior', 'Espaciosa habitacion colonial con techos altos de madera tallada original, mobiliario de epoca restaurado, balcon a la calle peatonal y bano moderno.', 2, 1, 1, 1, FALSE, FALSE, 45.00, 85.00),
 (2, 'Suite Panoramica', 'Lujosa suite en el piso superior con ventanales de piso a techo y vistas de 360 grados al centro historico de la ciudad.', 2, 0, 1, 1, TRUE, FALSE, 75.00, 120.00),
-(3, 'Bungalow Familiar de la Selva', 'Bungalow rustico de dos pisos suspendido entre los arboles. Cuenta con mallas mosquiteras de alta calidad, balcon con hamacas y bano al aire libre estilo eco.', 4, 2, 2, 3, FALSE, TRUE, 95.00, 110.00)
+(3, 'Bungalow Familiar de la Selva', 'Bungalow rustico de dos pisos suspendido entre los arboles. Cuenta con mallas mosquiteras de alta calidad, balcon con hamacas y bano al aire libre estilo eco.', 4, 2, 2, 3, FALSE, TRUE, 95.00, 110.00),
+(4, 'Suite Master Mateo Torres', 'Espaciosa suite equipada con cama King, bano con jacuzzi, Smart TV, cocina completa y aire acondicionado de ultima tecnologia.', 2, 2, 1, 1, TRUE, TRUE, 70.00, 160.00),
+(4, 'Estudio Ejecutivo Torres', 'Estudio funcional ideal para viajeros de negocios, con area de trabajo comoda, bano privado y conexion a internet de alta velocidad.', 1, 0, 1, 1, FALSE, TRUE, 35.00, 90.00)
 ON CONFLICT DO NOTHING;
 
 -- Insertar Disponibilidad inicial en CalendarioDisponibilidad para los proximos 30 dias para todas las habitaciones
