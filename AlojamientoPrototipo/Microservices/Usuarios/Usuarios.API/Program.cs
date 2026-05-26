@@ -10,10 +10,6 @@ builder.Services.AddDbContext<UsuariosDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionUsuarios"), 
             npgsqlOptions => {
                 npgsqlOptions.UseNetTopologySuite();
-                npgsqlOptions.EnableRetryOnFailure(
-                    maxRetryCount: 5,
-                    maxRetryDelay: TimeSpan.FromSeconds(10),
-                    errorCodesToAdd: null);
             })
            .UseLowerCaseNamingConvention());
 
