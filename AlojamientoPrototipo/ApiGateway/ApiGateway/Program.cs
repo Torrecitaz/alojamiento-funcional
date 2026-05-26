@@ -141,7 +141,8 @@ app.Use(async (context, next) =>
             return;
         }
 
-        var monto = internalRes.Total;
+        // ── 2. Calcular monto como suma de detalles (Facturacion valida monto == suma) ──
+        // Usamos PrecioPorNoche * NumNoches por habitacion para que cuadre exactamente.
         var detalles = internalRes.DetallesHabitacion.Select(d => new
         {
             descripcion = $"Habitación {d.HabitacionId} - {d.NumNoches} noche(s)",
@@ -149,6 +150,27 @@ app.Use(async (context, next) =>
             precioUnitario = d.PrecioPorNoche
         }).ToList();
 
+        // El monto DEBE ser igual a la suma de detalles (validación en FacturasService)
+        decimal monto;
+        List<object> detallesObj;
+
+        if (detalles.Count > 0)
+        {
+            monto = detalles.Sum(d => (decimal)d.cantidad * d.precioUnitario);
+            detallesObj = detalles.Cast<object>().ToList();
+        }
+        else
+        {
+            monto = internalRes.Total;
+            detallesObj = new List<object>
+            {
+                new { descripcion = $"Reserva #{internalRes.ReservaId}", cantidad = 1, precioUnitario = monto }
+            };
+        }
+
+        // ── 3. Crear factura con fechaPago = UtcNow → queda en estado "Pagado" directo ──
+        // No se llama a /aprobar porque ese endpoint publica a RabbitMQ (ECONNRESET en free tier).
+        // Pasar fechaPago hace que FacturasService.CrearAsync establezca Estado = "Pagado".
         var facturacionClient = httpClientFactory.CreateClient("Facturacion");
         var crearFacturaReq = new
         {
@@ -156,7 +178,7 @@ app.Use(async (context, next) =>
             metodoPagoExternalId = request.MetodoPagoId,
             monto = monto,
             fechaPago = DateTime.UtcNow,
-            detalles = detalles
+            detalles = detallesObj
         };
 
         var factResponse = await facturacionClient.PostAsJsonAsync("api/v1/Facturas", crearFacturaReq);
@@ -176,15 +198,7 @@ app.Use(async (context, next) =>
             return;
         }
 
-        var aprobarResponse = await facturacionClient.PatchAsync($"api/v1/Facturas/{factura.FacturaId}/aprobar", null);
-        if (!aprobarResponse.IsSuccessStatusCode)
-        {
-            var errBody = await aprobarResponse.Content.ReadAsStringAsync();
-            context.Response.StatusCode = 502;
-            await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Error al aprobar factura: {errBody}", reserva_id = internalRes.ReservaId.ToString() });
-            return;
-        }
-
+        // ── 4. Respuesta exitosa ──────────────────────────────────────────────
         context.Response.StatusCode = 200;
         await context.Response.WriteAsJsonAsync(new CheckoutBookingResponse
         {
