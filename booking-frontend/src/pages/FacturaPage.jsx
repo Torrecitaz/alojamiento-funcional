@@ -17,10 +17,19 @@ export default function FacturaPage() {
         setReserva(reservaData);
 
         if (reservaData?.reservaId) {
-          const pagosData = await api.get(`/pagos/por-reserva/${reservaData.reservaId}`);
-          setPagos(pagosData.data.datos || []);
+          const { data: factData } = await api.get(`/facturas/reserva/${reservaData.reservaId}`);
+          if (factData?.success && factData?.datos) {
+            const f = factData.datos;
+            setPagos([{
+              pagoId: f.facturaId,
+              fechaPago: f.fechaPago || f.fechaCreacion,
+              referenciaPago: `FAC-${f.facturaId}`,
+              tipoPago: f.metodoPago || 'Tarjeta',
+              monto: f.monto
+            }]);
+          }
         }
-      } catch {
+      } catch (err) {
         toast.error('Error al cargar la factura');
       } finally {
         setLoading(false);

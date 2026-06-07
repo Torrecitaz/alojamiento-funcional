@@ -44,15 +44,18 @@ export default function CheckoutPage() {
     const idempotencyKey = `pay_${codigo}_${Date.now()}`;
 
     try {
-      const payload = {
-        reservaId: reserva.reservaId,
-        monto: reserva.total,
-        monedaId: 1,
-        tipoPago: metodoPago,
-        referenciaPago: `BP-${Date.now()}`
+      const metodoPagoMap = {
+        'Tarjeta': '22222222-2222-2222-2222-222222222222', // CREDITO
+        'EnSitio': '33333333-3333-3333-3333-333333333333',  // Pago en Sitio
       };
 
-      await api.post('/pagos', payload, {
+      const payload = {
+        idCarrito: codigo,
+        metodoPagoId: metodoPagoMap[metodoPago] || metodoPago,
+        currency: 'USD'
+      };
+
+      await api.post('/reservas/checkout', payload, {
         headers: { 'Idempotency-Key': idempotencyKey }
       });
 
@@ -102,7 +105,7 @@ export default function CheckoutPage() {
               <HiOutlineHome size={18} />
               <div>
                 <span className="summary-label">Propiedad</span>
-                <strong>{reserva.propiedadNombre || `Propiedad #${reserva.propiedadId}`}</strong>
+                <strong>{reserva.nombrePropiedad || reserva.nombreAlojamiento || `Propiedad #${reserva.propiedadId}`}</strong>
               </div>
             </div>
 

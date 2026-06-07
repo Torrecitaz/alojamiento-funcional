@@ -135,12 +135,15 @@ public record ReservaDto
     public string CodigoReserva { get; init; } = string.Empty;
     public int AlojamientoId { get; init; }
     public string NombreAlojamiento { get; init; } = string.Empty;
+    public string NombrePropiedad { get; init; } = string.Empty;
+    public string NombreCliente { get; init; } = string.Empty;
     public DateOnly FechaCheckIn { get; init; }
     public DateOnly FechaCheckOut { get; init; }
     public int NumNoches { get; init; }
     public int NumAdultos { get; init; }
     public int NumNinos { get; init; }
     public bool LlevaMascotas { get; init; }
+    public int NumHabitaciones { get; init; }
     public decimal SubTotal { get; init; }
     public decimal? Descuento { get; init; }
     public decimal Total { get; init; }

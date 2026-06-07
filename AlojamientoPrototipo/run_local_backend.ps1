@@ -1,4 +1,5 @@
 $env:DOTNET_ROLL_FORWARD="LatestMajor"
+$env:ASPNETCORE_ENVIRONMENT="Development"
 $env:Microservices__UsuariosUrl="http://localhost:5001"
 $env:Microservices__AlojamientosUrl="http://localhost:5002"
 $env:Microservices__ReservasUrl="http://localhost:5003"

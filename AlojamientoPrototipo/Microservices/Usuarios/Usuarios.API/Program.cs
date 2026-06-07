@@ -3,6 +3,8 @@ using Usuarios.DataAccess.Contexts;
 using Usuarios.API.Extensions;
 using Usuarios.API.Middleware;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. Base de datos ─────────────────────────────────

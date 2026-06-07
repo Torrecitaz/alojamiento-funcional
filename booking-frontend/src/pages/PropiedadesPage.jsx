@@ -160,10 +160,14 @@ export default function PropiedadesPage() {
           {filtered.map((prop, idx) => (
             <Link to={`/propiedades/${prop.propiedadId}`} className="card prop-card animate-fade-in-up" key={prop.propiedadId} style={{ animationDelay: `${idx * .05}s` }}>
               <div className="prop-img-container">
-                <div className="prop-img-placeholder">
-                  <HiOutlineLocationMarker size={32} />
-                  <span>{prop.ciudad || 'Hotel'}</span>
-                </div>
+                {prop.imagenUrl ? (
+                  <img src={prop.imagenUrl} alt={prop.nombre} className="prop-img" />
+                ) : (
+                  <div className="prop-img-placeholder">
+                    <HiOutlineLocationMarker size={32} />
+                    <span>{prop.ciudad || 'Hotel'}</span>
+                  </div>
+                )}
                 {prop.admiteMascotas && (
                   <span className="prop-badge-pet">
                     <PawPrint size={14} /> Pet-Friendly

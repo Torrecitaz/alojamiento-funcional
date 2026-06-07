@@ -4,6 +4,8 @@ using Reservas.API.Extensions;
 using Reservas.API.Middleware;
 using MassTransit;
 
+AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
+
 var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. Base de datos ─────────────────────────────────

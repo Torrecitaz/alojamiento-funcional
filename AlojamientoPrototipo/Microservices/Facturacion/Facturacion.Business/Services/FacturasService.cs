@@ -104,6 +104,19 @@ public class FacturasService : IFacturasService
             });
 
             await _unitOfWork.CommitTransactionAsync();
+
+            // Si se creó como pagada (p. ej. en checkout inmediato), publicar evento
+            if (created.FechaPago.HasValue)
+            {
+                await _publishEndpoint.Publish(new FacturaPagadaEvent
+                {
+                    ReservaId = created.ReservaId,
+                    FacturaId = created.FacturaId,
+                    MontoPagado = created.Monto,
+                    FechaPago = created.FechaPago.Value
+                });
+            }
+
             return await GetByIdAsync(created.FacturaId);
         }
         catch

@@ -109,10 +109,14 @@ export default function PropiedadDetallePage() {
       </Link>
 
       <div className="detalle-hero">
-        <div className="detalle-hero-bg">
-          <HiOutlineLocationMarker size={48} />
-          <span>{propiedad.ciudad}</span>
-        </div>
+        {propiedad.imagenUrl ? (
+          <img src={propiedad.imagenUrl} alt={propiedad.nombre} className="detalle-hero-img" />
+        ) : (
+          <div className="detalle-hero-bg">
+            <HiOutlineLocationMarker size={48} />
+            <span>{propiedad.ciudad}</span>
+          </div>
+        )}
         <div className="detalle-hero-overlay">
           <div className="stars">{renderStars(propiedad.estrellas)}</div>
           <span className={`badge ${propiedad.estado === 'Activa' ? 'badge-success' : 'badge-warning'}`}>

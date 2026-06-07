@@ -18,8 +18,10 @@ import CalendarioAdmin from './pages/admin/CalendarioAdmin';
 import AdminColaboradores from './pages/admin/AdminColaboradores';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminReservas from './pages/admin/AdminReservas';
+import useSignalR from './hooks/useSignalR';
 
 export default function App() {
+  useSignalR();
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Toaster

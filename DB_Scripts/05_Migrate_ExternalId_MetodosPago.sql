@@ -20,6 +20,13 @@ CREATE UNIQUE INDEX IF NOT EXISTS UX_MetodosPagoCliente_ExternalId
 --    (Copiar estos UUIDs exactos al panel de Booking para pruebas)
 -- =====================================================
 
+-- Asegurar existencia de los registros base
+INSERT INTO metodospagocliente (MetodoPagoId, Tipo) VALUES
+(1, 'DEBITO'),
+(2, 'CREDITO'),
+(3, 'EnSitio')
+ON CONFLICT (MetodoPagoId) DO NOTHING;
+
 -- DEBITO  (MetodoPagoId = 1)
 UPDATE metodospagocliente
 SET ExternalId = '11111111-1111-1111-1111-111111111111'
