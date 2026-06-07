@@ -1,121 +1,167 @@
+# render.yaml — Blueprint de despliegue AlojaExpress en Render.com
+# Documentación: https://render.com/docs/blueprint-spec
+
 services:
+  # ── API Gateway (único servicio público) ──────────────────────────
   - type: web
-    name: alojamientos-api
-    env: docker
-    dockerContext: ./AlojamientoPrototipo
-    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Alojamientos
-    plan: free
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-      - key: ConnectionStrings__ConexionAlojamientos
-        value: Host=aws-1-us-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.ikzqtnvrghuujtoyvhbi;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
-
-  - type: web
-    name: facturacion-api
-    env: docker
-    dockerContext: ./AlojamientoPrototipo
-    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Facturacion
-    plan: free
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-      - key: ConnectionStrings__ConexionFacturacion
-        value: Host=aws-1-us-west-2.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.wtsvyhxggjiiviimdeef;Password=Supabase_1?;SSL Mode=Require;Trust Server Certificate=true
-
-  - type: web
-    name: reservas-api
-    env: docker
-    dockerContext: ./AlojamientoPrototipo
-    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Reservas
-    plan: free
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-      - key: ConnectionStrings__ConexionReservas
-        value: Host=aws-1-us-west-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.tnxniynmtizuymfjyalr;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
-      - key: GrpcUrls__Alojamientos
-        fromService:
-          type: web
-          name: alojamientos-api
-          envVarKey: RENDER_PRIVATE_URL
-
-  - type: web
-    name: usuarios-api
-    env: docker
-    dockerContext: ./AlojamientoPrototipo
-    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Usuarios
-    plan: free
-    envVars:
-      - key: ASPNETCORE_ENVIRONMENT
-        value: Production
-      - key: ConnectionStrings__ConexionUsuarios
-        value: Host=aws-1-us-east-1.pooler.supabase.com;Port=5432;Database=postgres;Username=postgres.bmwqjzacsidbbqcwyfui;Password=Supabase_2?;SSL Mode=Require;Trust Server Certificate=true
-
-  - type: web
-    name: api-gateway
-    env: docker
-    dockerContext: ./AlojamientoPrototipo
+    name: alojaexpress-gateway
+    runtime: docker
     dockerfilePath: ./AlojamientoPrototipo/Dockerfile.ApiGateway
+    dockerContext: ./AlojamientoPrototipo
     plan: free
+    healthCheckPath: /health
     envVars:
       - key: ASPNETCORE_ENVIRONMENT
         value: Production
-      - key: ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address
-        fromService:
-          type: web
-          name: alojamientos-api
-          envVarKey: RENDER_PRIVATE_URL
-      - key: ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address
-        fromService:
-          type: web
-          name: reservas-api
-          envVarKey: RENDER_PRIVATE_URL
-      - key: ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address
-        fromService:
-          type: web
-          name: usuarios-api
-          envVarKey: RENDER_PRIVATE_URL
-      - key: ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address
-        fromService:
-          type: web
-          name: facturacion-api
-          envVarKey: RENDER_PRIVATE_URL
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: PORT
+        value: 8080
       - key: Microservices__UsuariosUrl
         fromService:
-          type: web
-          name: usuarios-api
-          envVarKey: RENDER_PRIVATE_URL
+          name: alojaexpress-usuarios
+          type: pserv
+          property: hostport
       - key: Microservices__AlojamientosUrl
         fromService:
-          type: web
-          name: alojamientos-api
-          envVarKey: RENDER_PRIVATE_URL
+          name: alojaexpress-alojamientos
+          type: pserv
+          property: hostport
       - key: Microservices__ReservasUrl
         fromService:
-          type: web
-          name: reservas-api
-          envVarKey: RENDER_PRIVATE_URL
+          name: alojaexpress-reservas
+          type: pserv
+          property: hostport
       - key: Microservices__FacturacionUrl
         fromService:
-          type: web
-          name: facturacion-api
-          envVarKey: RENDER_PRIVATE_URL
+          name: alojaexpress-facturacion
+          type: pserv
+          property: hostport
+      - key: ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address
+        fromService:
+          name: alojaexpress-reservas
+          type: pserv
+          property: hostport
+      - key: ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address
+        fromService:
+          name: alojaexpress-alojamientos
+          type: pserv
+          property: hostport
+      - key: ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address
+        fromService:
+          name: alojaexpress-usuarios
+          type: pserv
+          property: hostport
+      - key: ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address
+        fromService:
+          name: alojaexpress-facturacion
+          type: pserv
+          property: hostport
+      - key: BookingIntegration__ApiKey
+        sync: false
+      - key: BookingIntegration__HmacSecret
+        sync: false
+      - key: ConnectionStrings__RabbitMQ
+        sync: false
 
-  - type: web
-    name: booking-frontend
-    env: docker
-    dockerContext: .
-    dockerfilePath: ./Dockerfile.front
+  # ── Usuarios API (servicio privado) ──────────────────────────────
+  - type: pserv
+    name: alojaexpress-usuarios
+    runtime: docker
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Usuarios
+    dockerContext: ./AlojamientoPrototipo
     plan: free
     envVars:
-      - key: API_GATEWAY_URL
-        fromService:
-          type: web
-          name: api-gateway
-          envVarKey: RENDER_EXTERNAL_URL
-      - key: API_GATEWAY_HOST
-        fromService:
-          type: web
-          name: api-gateway
-          envVarKey: RENDER_EXTERNAL_HOSTNAME
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: PORT
+        value: 8080
+      - key: ConnectionStrings__ConexionUsuarios
+        fromDatabase:
+          name: alojaexpress-db-usuarios
+          property: connectionString
+
+  # ── Alojamientos API (servicio privado) ──────────────────────────
+  - type: pserv
+    name: alojaexpress-alojamientos
+    runtime: docker
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Alojamientos
+    dockerContext: ./AlojamientoPrototipo
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: PORT
+        value: 8080
+      - key: ConnectionStrings__ConexionAlojamientos
+        fromDatabase:
+          name: alojaexpress-db-alojamientos
+          property: connectionString
+
+  # ── Reservas API (servicio privado) ──────────────────────────────
+  - type: pserv
+    name: alojaexpress-reservas
+    runtime: docker
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Reservas
+    dockerContext: ./AlojamientoPrototipo
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: PORT
+        value: 8080
+      - key: ConnectionStrings__ConexionReservas
+        fromDatabase:
+          name: alojaexpress-db-reservas
+          property: connectionString
+      - key: ConnectionStrings__RabbitMQ
+        sync: false
+
+  # ── Facturacion API (servicio privado) ────────────────────────────
+  - type: pserv
+    name: alojaexpress-facturacion
+    runtime: docker
+    dockerfilePath: ./AlojamientoPrototipo/Dockerfile.Facturacion
+    dockerContext: ./AlojamientoPrototipo
+    plan: free
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:8080
+      - key: PORT
+        value: 8080
+      - key: ConnectionStrings__ConexionFacturacion
+        fromDatabase:
+          name: alojaexpress-db-facturacion
+          property: connectionString
+      - key: ConnectionStrings__RabbitMQ
+        sync: false
+
+# ── Bases de Datos PostgreSQL ─────────────────────────────────────
+databases:
+  - name: alojaexpress-db-usuarios
+    plan: free
+    databaseName: db_usuarios
+    user: postgres
+
+  - name: alojaexpress-db-alojamientos
+    plan: free
+    databaseName: db_alojamientos
+    user: postgres
+
+  - name: alojaexpress-db-reservas
+    plan: free
+    databaseName: db_reservas
+    user: postgres
+
+  - name: alojaexpress-db-facturacion
+    plan: free
+    databaseName: db_facturacion
+    user: postgres
