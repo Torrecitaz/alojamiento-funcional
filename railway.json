@@ -1,0 +1,12 @@
+# railway.json — Configuración del proyecto AlojaExpress en Railway
+# Este archivo le indica a Railway qué servicios construir y cómo
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "DOCKERFILE"
+  },
+  "deploy": {
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}

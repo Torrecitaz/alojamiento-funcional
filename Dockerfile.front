@@ -1,15 +1,30 @@
-# Etapa 1: Construcción
-FROM node:20 AS build
+# ── Etapa 1: Build ──────────────────────────────────────────────
+FROM node:20-alpine AS build
 WORKDIR /app
+
+# Copiar dependencias primero (cache layer)
 COPY booking-frontend/package*.json ./
-RUN npm install
+RUN npm ci
+
+# Copiar todo el código fuente del frontend
 COPY booking-frontend/ .
+
+# La variable VITE_API_BASE_URL se inyecta como build arg para producción
+ARG VITE_API_BASE_URL=/api/v1
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+
+# Build de producción
 RUN npm run build
 
-# Etapa 2: Servidor de producción
-FROM nginx:alpine
-COPY --from=build /app/dist /usr/share/nginx/html
-# Copiaremos una configuración de nginx personalizada en el siguiente paso
+# ── Etapa 2: Serve con Nginx ─────────────────────────────────────
+FROM nginx:1.25-alpine AS runtime
+
+# Configuración de Nginx para SPA (React Router)
 COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# Copiar el build de Vite al directorio de Nginx
+COPY --from=build /app/dist /usr/share/nginx/html
+
 EXPOSE 80
-CMD ["/bin/sh", "-c", "envsubst '${API_GATEWAY_URL} ${API_GATEWAY_HOST}' < /etc/nginx/conf.d/default.conf > /etc/nginx/conf.d/default.conf.temp && mv /etc/nginx/conf.d/default.conf.temp /etc/nginx/conf.d/default.conf && exec nginx -g 'daemon off;'"]
+
+CMD ["nginx", "-g", "daemon off;"]

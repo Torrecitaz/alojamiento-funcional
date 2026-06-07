@@ -13,9 +13,10 @@ obj/
 appsettings.Development.json
 
 ## Secrets (IMPORTANTE)
-# No subir appsettings.json si tiene contraseñas reales. 
-# En Render usaremos Variables de Entorno.
-# appsettings.json
+# El .env real NUNCA se sube al repositorio (contiene contraseñas de producción)
+.env
+# El .env.example SÍ se puede subir (tiene valores de ejemplo)
+# appsettings.json con contraseñas reales tampoco
 
 ## Otros
 .DS_Store
