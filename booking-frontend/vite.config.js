@@ -11,6 +11,12 @@ export default defineConfig({
         target: 'http://127.0.0.1:5028',
         changeOrigin: true,
         secure: false,
+      },
+      '/bookingHub': {
+        target: 'http://127.0.0.1:5028',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
       }
     }
   }

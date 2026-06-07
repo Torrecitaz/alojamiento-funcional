@@ -4,6 +4,7 @@ using Reservas.Business.Interfaces;
 using Reservas.Business.Mappers;
 using Reservas.DataManagement.Interfaces;
 using Reservas.DataManagement.Models;
+using MassTransit;
 
 namespace Reservas.Business.Services;
 
@@ -13,17 +14,20 @@ public class ReservasService : IReservasService
     private readonly IDescuentosDataService _descuentosDataService;
     private readonly IUnitOfWork _unitOfWork;
     private readonly Shared.Protos.CalendarioGrpc.CalendarioGrpcClient _calendarioGrpcClient;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public ReservasService(
         IReservasDataService reservasDataService,
         IDescuentosDataService descuentosDataService,
         IUnitOfWork unitOfWork,
-        Shared.Protos.CalendarioGrpc.CalendarioGrpcClient calendarioGrpcClient)
+        Shared.Protos.CalendarioGrpc.CalendarioGrpcClient calendarioGrpcClient,
+        IPublishEndpoint publishEndpoint)
     {
         _reservasDataService = reservasDataService;
         _descuentosDataService = descuentosDataService;
         _unitOfWork = unitOfWork;
         _calendarioGrpcClient = calendarioGrpcClient;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<ReservaResponse> GetByIdAsync(int id)
@@ -127,7 +131,17 @@ public class ReservasService : IReservasService
             var created = await _reservasDataService.CreateAsync(model);
             await _unitOfWork.CommitTransactionAsync();
             
-            // TODO: Publicar evento a RabbitMQ -> ReservaCreadaEvent
+            // Publicar evento ReservaCreatedEvent
+            await _publishEndpoint.Publish(new Shared.Kernel.Events.ReservaCreatedEvent
+            {
+                ReservaId = created.ReservaId,
+                AlojamientoId = created.AlojamientoId,
+                ClienteId = created.ClienteId,
+                FechaCheckIn = created.FechaCheckIn,
+                FechaCheckOut = created.FechaCheckOut,
+                Total = created.Total,
+                CodigoReserva = created.CodigoReserva
+            });
 
             return await GetByIdAsync(created.ReservaId);
         }
@@ -140,9 +154,31 @@ public class ReservasService : IReservasService
 
     public async Task ActualizarEstadoAsync(int id, ActualizarEstadoReservaRequest request)
     {
+        var existing = await _reservasDataService.GetByIdAsync(id);
+        if (existing == null) throw new ReservaNotFoundException(id);
+
         await _reservasDataService.UpdateStatusAsync(id, request.Estado);
         
-        // TODO: Publicar evento a RabbitMQ -> EstadoReservaActualizadoEvent
+        if (request.Estado.Equals("Confirmada", StringComparison.OrdinalIgnoreCase))
+        {
+            await _publishEndpoint.Publish(new Shared.Kernel.Events.ReservaConfirmedEvent
+            {
+                ReservaId = existing.ReservaId,
+                CodigoReserva = existing.CodigoReserva,
+                AlojamientoId = existing.AlojamientoId,
+                FechaCheckIn = existing.FechaCheckIn,
+                FechaCheckOut = existing.FechaCheckOut
+            });
+        }
+        else if (request.Estado.Equals("Cancelada", StringComparison.OrdinalIgnoreCase))
+        {
+            await _publishEndpoint.Publish(new Shared.Kernel.Events.ReservaCancelledEvent
+            {
+                ReservaId = existing.ReservaId,
+                CodigoReserva = existing.CodigoReserva,
+                AlojamientoId = existing.AlojamientoId
+            });
+        }
     }
 
     public async Task<ReservaResponse?> GetByCodigoAsync(string codigo)

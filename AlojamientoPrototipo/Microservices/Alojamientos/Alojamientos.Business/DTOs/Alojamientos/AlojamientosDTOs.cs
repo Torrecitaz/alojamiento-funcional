@@ -1,9 +1,10 @@
+using System;
 using System.ComponentModel.DataAnnotations;
 
 namespace Alojamientos.Business.DTOs.Alojamientos;
 
 public record CrearAlojamientoRequest(
-    [Required] int SocioId, // El id del usuario propietario
+    [Required] int SocioId, 
     [Required] int TipoAlojamientoId,
     [Required] [MaxLength(200)] string Nombre,
     [MaxLength(100)] string? Ciudad,
@@ -11,7 +12,15 @@ public record CrearAlojamientoRequest(
     string? Descripcion,
     bool AdmiteMascotas = false,
     bool TienePiscina = false,
-    bool TieneParqueadero = false
+    bool TieneParqueadero = false,
+    [MaxLength(100)] string? Provincia = null,
+    [MaxLength(100)] string? Pais = null,
+    string? Politicas = null,
+    [MaxLength(50)] string? CheckInTime = null,
+    [MaxLength(50)] string? CheckOutTime = null,
+    string? Servicios = null,
+    double? Latitud = null,
+    double? Longitud = null
 );
 
 public record ActualizarAlojamientoRequest(
@@ -23,7 +32,16 @@ public record ActualizarAlojamientoRequest(
     bool AdmiteMascotas,
     bool TienePiscina,
     bool TieneParqueadero,
-    int? Estrellas
+    int? Estrellas,
+    [MaxLength(100)] string? Provincia = null,
+    [MaxLength(100)] string? Pais = null,
+    string? Politicas = null,
+    [MaxLength(50)] string? CheckInTime = null,
+    [MaxLength(50)] string? CheckOutTime = null,
+    string? Servicios = null,
+    double? Latitud = null,
+    double? Longitud = null,
+    [MaxLength(20)] string? Estado = null
 );
 
 public record AlojamientoResponse(
@@ -42,5 +60,13 @@ public record AlojamientoResponse(
     bool TienePiscina,
     bool TieneParqueadero,
     string Estado,
-    DateTime FechaCreacion
+    DateTime FechaCreacion,
+    string? Provincia = null,
+    string? Pais = null,
+    string? Politicas = null,
+    string? CheckInTime = null,
+    string? CheckOutTime = null,
+    string? Servicios = null,
+    double? Latitud = null,
+    double? Longitud = null
 );

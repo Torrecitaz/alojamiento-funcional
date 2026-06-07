@@ -1,9 +1,13 @@
+using System.Text.Json.Serialization;
+
 namespace Alojamientos.API.Models.Common;
 
 public class ApiResponse<T>
 {
     public bool Success { get; set; } = true;
     public string Message { get; set; } = string.Empty;
+
+    [JsonPropertyName("datos")]
     public T? Data { get; set; }
 
     public ApiResponse() { }

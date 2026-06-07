@@ -4,14 +4,20 @@ using Alojamientos.Business.Interfaces;
 using Alojamientos.Business.Mappers;
 using Alojamientos.DataManagement.Interfaces;
 using Alojamientos.DataManagement.Models;
+using MassTransit;
 
 namespace Alojamientos.Business.Services;
 
 public class AlojamientosService : IAlojamientosService
 {
     private readonly IAlojamientosDataService _dataService;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public AlojamientosService(IAlojamientosDataService dataService) => _dataService = dataService;
+    public AlojamientosService(IAlojamientosDataService dataService, IPublishEndpoint publishEndpoint)
+    {
+        _dataService = dataService;
+        _publishEndpoint = publishEndpoint;
+    }
 
     public async Task<IEnumerable<AlojamientoResponse>> GetAllAsync()
     {
@@ -37,10 +43,27 @@ public class AlojamientosService : IAlojamientosService
             Descripcion = request.Descripcion,
             AdmiteMascotas = request.AdmiteMascotas,
             TienePiscina = request.TienePiscina,
-            TieneParqueadero = request.TieneParqueadero
+            TieneParqueadero = request.TieneParqueadero,
+            Estado = "Activo",
+            Provincia = request.Provincia,
+            Pais = request.Pais,
+            Politicas = request.Politicas,
+            CheckInTime = request.CheckInTime,
+            CheckOutTime = request.CheckOutTime,
+            Servicios = request.Servicios,
+            Latitud = request.Latitud,
+            Longitud = request.Longitud
         };
 
         var created = await _dataService.CreateAsync(model);
+
+        // Publicar evento de creación
+        await _publishEndpoint.Publish(new Shared.Kernel.Events.AlojamientoEstadoChangedEvent
+        {
+            AlojamientoId = created.AlojamientoId,
+            Estado = created.Estado
+        });
+
         return AlojamientosBusinessMapper.ToResponse(created);
     }
 
@@ -59,7 +82,24 @@ public class AlojamientosService : IAlojamientosService
         existing.TieneParqueadero = request.TieneParqueadero;
         if (request.Estrellas.HasValue) existing.Estrellas = request.Estrellas.Value;
 
+        existing.Provincia = request.Provincia;
+        existing.Pais = request.Pais;
+        existing.Politicas = request.Politicas;
+        existing.CheckInTime = request.CheckInTime;
+        existing.CheckOutTime = request.CheckOutTime;
+        existing.Servicios = request.Servicios;
+        existing.Latitud = request.Latitud;
+        existing.Longitud = request.Longitud;
+        if (!string.IsNullOrEmpty(request.Estado)) existing.Estado = request.Estado;
+
         await _dataService.UpdateAsync(existing);
+
+        // Publicar evento de actualización
+        await _publishEndpoint.Publish(new Shared.Kernel.Events.AlojamientoEstadoChangedEvent
+        {
+            AlojamientoId = existing.AlojamientoId,
+            Estado = existing.Estado
+        });
     }
 
     public async Task EliminarAsync(int id)
@@ -67,6 +107,14 @@ public class AlojamientosService : IAlojamientosService
         var existing = await _dataService.GetByIdAsync(id)
             ?? throw new AlojamientoNotFoundException(id);
 
-        await _dataService.DeleteAsync(id);
+        existing.Estado = "Inactivo";
+        await _dataService.UpdateAsync(existing);
+
+        // Publicar evento de desactivación
+        await _publishEndpoint.Publish(new Shared.Kernel.Events.AlojamientoEstadoChangedEvent
+        {
+            AlojamientoId = existing.AlojamientoId,
+            Estado = existing.Estado
+        });
     }
 }

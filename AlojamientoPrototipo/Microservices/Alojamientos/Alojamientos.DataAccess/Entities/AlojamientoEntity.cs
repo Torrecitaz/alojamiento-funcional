@@ -30,6 +30,23 @@ public class AlojamientoEntity
     public bool AdmiteMascotas { get; set; } = false;
     public bool TienePiscina { get; set; } = false;
     public bool TieneParqueadero { get; set; } = false;
+    [MaxLength(100)]
+    public string? Provincia { get; set; }
+
+    [MaxLength(100)]
+    public string? Pais { get; set; }
+
+    public string? Politicas { get; set; }
+
+    [MaxLength(50)]
+    public string? CheckInTime { get; set; }
+
+    [MaxLength(50)]
+    public string? CheckOutTime { get; set; }
+
+    public string? Servicios { get; set; }
+
+    public NpgsqlTypes.NpgsqlPoint? Coordenadas { get; set; }
 
     [MaxLength(20)]
     public string Estado { get; set; } = "Pendiente";

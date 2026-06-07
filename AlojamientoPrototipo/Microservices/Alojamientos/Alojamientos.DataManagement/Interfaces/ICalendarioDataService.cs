@@ -7,5 +7,6 @@ public interface ICalendarioDataService
     Task<IEnumerable<CalendarioDisponibilidadDataModel>> GetByHabitacionIdAsync(int habitacionId, int mes, int anio);
     Task<IEnumerable<CalendarioDisponibilidadDataModel>> CreateRangeAsync(IEnumerable<CalendarioDisponibilidadDataModel> models);
     Task<bool> ExistsBloqueoOcupacionAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin);
+    Task<bool> ExistsBloqueoOcupacionWithLockAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin);
     Task EliminarFechasAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin);
 }

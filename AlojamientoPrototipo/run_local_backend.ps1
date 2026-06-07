@@ -12,21 +12,22 @@ ${env:ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__A
 New-Item -ItemType Directory -Force -Path "logs" | Out-Null
 
 Write-Host "Iniciando Usuarios.API..."
-Start-Process dotnet -ArgumentList "run --project Microservices/Usuarios/Usuarios.API/Usuarios.API.csproj" -NoNewWindow -RedirectStandardOutput "logs/usuarios.log" -RedirectStandardError "logs/usuarios_error.log"
+Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/Usuarios.API.dll --urls http://localhost:5001" -WorkingDirectory "Microservices/Usuarios/Usuarios.API" -NoNewWindow -RedirectStandardOutput "../../../logs/usuarios.log" -RedirectStandardError "../../../logs/usuarios_error.log"
 
 Write-Host "Iniciando Alojamientos.API..."
-Start-Process dotnet -ArgumentList "run --project Microservices/Alojamientos/Alojamientos.API/Alojamientos.API.csproj" -NoNewWindow -RedirectStandardOutput "logs/alojamientos.log" -RedirectStandardError "logs/alojamientos_error.log"
+Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/Alojamientos.API.dll --urls http://localhost:5002" -WorkingDirectory "Microservices/Alojamientos/Alojamientos.API" -NoNewWindow -RedirectStandardOutput "../../../logs/alojamientos.log" -RedirectStandardError "../../../logs/alojamientos_error.log"
 
 Write-Host "Iniciando Reservas.API..."
-Start-Process dotnet -ArgumentList "run --project Microservices/Reservas/Reservas.API/Reservas.API.csproj" -NoNewWindow -RedirectStandardOutput "logs/reservas.log" -RedirectStandardError "logs/reservas_error.log"
+Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/Reservas.API.dll --urls http://localhost:5003" -WorkingDirectory "Microservices/Reservas/Reservas.API" -NoNewWindow -RedirectStandardOutput "../../../logs/reservas.log" -RedirectStandardError "../../../logs/reservas_error.log"
 
 Write-Host "Iniciando Facturacion.API..."
-Start-Process dotnet -ArgumentList "run --project Microservices/Facturacion/Facturacion.API/Facturacion.API.csproj" -NoNewWindow -RedirectStandardOutput "logs/facturacion.log" -RedirectStandardError "logs/facturacion_error.log"
+Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/Facturacion.API.dll --urls http://localhost:5004" -WorkingDirectory "Microservices/Facturacion/Facturacion.API" -NoNewWindow -RedirectStandardOutput "../../../logs/facturacion.log" -RedirectStandardError "../../../logs/facturacion_error.log"
 
-Write-Host "Esperando 15 segundos para que los microservicios se compilen e inicien..."
-Start-Sleep -Seconds 15
+Write-Host "Esperando 5 segundos para que los microservicios se inicien..."
+Start-Sleep -Seconds 5
 
 Write-Host "Iniciando ApiGateway..."
-Start-Process dotnet -ArgumentList "run --project ApiGateway/ApiGateway/ApiGateway.csproj" -NoNewWindow -RedirectStandardOutput "logs/apigateway.log" -RedirectStandardError "logs/apigateway_error.log"
+Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/ApiGateway.dll --urls http://localhost:5028" -WorkingDirectory "ApiGateway/ApiGateway" -NoNewWindow -RedirectStandardOutput "../../logs/apigateway.log" -RedirectStandardError "../../logs/apigateway_error.log"
 
-Write-Host "Todos los servicios iniciados en segundo plano."
+Write-Host "Todos los servicios iniciados. Manteniendo proceso activo..."
+Start-Sleep -Seconds 86400

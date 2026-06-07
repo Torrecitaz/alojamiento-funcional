@@ -3,6 +3,7 @@ using Alojamientos.Business.Exceptions;
 using Alojamientos.Business.Interfaces;
 using Alojamientos.DataManagement.Interfaces;
 using Alojamientos.DataManagement.Models;
+using MassTransit;
 
 namespace Alojamientos.Business.Services;
 
@@ -11,15 +12,18 @@ public class CalendarioService : ICalendarioService
     private readonly ICalendarioDataService _calendarioDataService;
     private readonly IHabitacionesDataService _habitacionesDataService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public CalendarioService(
         ICalendarioDataService calendarioDataService,
         IHabitacionesDataService habitacionesDataService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IPublishEndpoint publishEndpoint)
     {
         _calendarioDataService = calendarioDataService;
         _habitacionesDataService = habitacionesDataService;
         _unitOfWork = unitOfWork;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<IEnumerable<CalendarioResponse>> GetDisponibilidadMensualAsync(int habitacionId, int mes, int anio)
@@ -46,13 +50,6 @@ public class CalendarioService : ICalendarioService
         var habitacion = await _habitacionesDataService.GetByIdAsync(request.HabitacionId);
         if (habitacion == null) throw new NotFoundException($"Habitación {request.HabitacionId} no encontrada.");
 
-        // Validar que no haya cruces con reservas existentes (ocupado o bloqueado)
-        bool hayCruce = await _calendarioDataService.ExistsBloqueoOcupacionAsync(
-            request.HabitacionId, request.FechaInicio, request.FechaFin);
-
-        if (hayCruce)
-            throw new BusinessRuleException("Ya existen fechas bloqueadas u ocupadas en el rango seleccionado.");
-
         // Generar lista de días a bloquear
         var diasBloquear = new List<CalendarioDisponibilidadDataModel>();
         for (var fecha = request.FechaInicio; fecha <= request.FechaFin; fecha = fecha.AddDays(1))
@@ -61,15 +58,33 @@ public class CalendarioService : ICalendarioService
             {
                 HabitacionId = request.HabitacionId,
                 Fecha = fecha,
-                Estado = "Bloqueado"
+                Estado = string.IsNullOrEmpty(request.Estado) ? "Bloqueado" : request.Estado
             });
         }
 
         await _unitOfWork.BeginTransactionAsync();
         try
         {
+            // Validar que no haya cruces con reservas existentes (ocupado o bloqueado) con bloqueo transaccional
+            bool hayCruce = await _calendarioDataService.ExistsBloqueoOcupacionWithLockAsync(
+                request.HabitacionId, request.FechaInicio, request.FechaFin);
+
+            if (hayCruce)
+                throw new BusinessRuleException("Ya existen fechas bloqueadas u ocupadas en el rango seleccionado.");
+
             var result = await _calendarioDataService.CreateRangeAsync(diasBloquear);
             await _unitOfWork.CommitTransactionAsync();
+
+            // Publicar eventos de cambio de disponibilidad
+            foreach (var item in result)
+            {
+                await _publishEndpoint.Publish(new Shared.Kernel.Events.HabitacionDisponibilidadChangedEvent
+                {
+                    HabitacionId = item.HabitacionId,
+                    Fecha = item.Fecha,
+                    Estado = item.Estado
+                });
+            }
 
             return result.Select(c => new CalendarioResponse
             {
@@ -96,6 +111,17 @@ public class CalendarioService : ICalendarioService
         {
             await _calendarioDataService.EliminarFechasAsync(habitacionId, fechaInicio, fechaFin);
             await _unitOfWork.CommitTransactionAsync();
+
+            // Publicar eventos de liberación (estado Disponible)
+            for (var fecha = fechaInicio; fecha <= fechaFin; fecha = fecha.AddDays(1))
+            {
+                await _publishEndpoint.Publish(new Shared.Kernel.Events.HabitacionDisponibilidadChangedEvent
+                {
+                    HabitacionId = habitacionId,
+                    Fecha = fecha,
+                    Estado = "Disponible"
+                });
+            }
         }
         catch
         {

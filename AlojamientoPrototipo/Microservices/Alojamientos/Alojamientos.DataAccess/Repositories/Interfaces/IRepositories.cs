@@ -20,4 +20,5 @@ public interface IAlojamientoFotosRepository : IRepositoryBase<AlojamientoFotoEn
 
 public interface ICalendarioDisponibilidadRepository : IRepositoryBase<CalendarioDisponibilidadEntity>
 {
+    Task<bool> ExistsBloqueoOcupacionWithLockAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin);
 }

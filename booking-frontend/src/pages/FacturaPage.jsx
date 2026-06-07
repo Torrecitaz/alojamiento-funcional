@@ -47,11 +47,11 @@ export default function FacturaPage() {
         </button>
       </div>
 
-      {/* Claude: Estiliza esta factura para que parezca un recibo oficial de "BookingPro" */}
+      {/* Claude: Estiliza esta factura para que parezca un recibo oficial de "AlojaExpress" */}
       <div className="card" style={{ padding: 40, borderTop: '8px solid var(--color-primary)' }} id="factura-print-area">
         <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '2px solid #eee', paddingBottom: 24, marginBottom: 24 }}>
           <div>
-            <h1 style={{ margin: 0, color: 'var(--color-primary)' }}>BookingPro</h1>
+            <h1 style={{ margin: 0, color: 'var(--color-primary)' }}>AlojaExpress</h1>
             <p style={{ color: '#666', margin: 0 }}>Factura Oficial de Hospedaje</p>
           </div>
           <div style={{ textAlign: 'right' }}>

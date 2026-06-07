@@ -3,26 +3,26 @@ import { jwtDecode } from 'jwt-decode';
 
 const getInitialUser = () => {
   try {
-    const saved = localStorage.getItem('booking_user');
+    const saved = localStorage.getItem('alojaexpress_user');
     return saved ? JSON.parse(saved) : null;
   } catch (e) {
     console.error("Error parsing saved user", e);
-    localStorage.removeItem('booking_user');
+    localStorage.removeItem('alojaexpress_user');
     return null;
   }
 };
 
 const useAuthStore = create((set) => ({
-  token: localStorage.getItem('booking_token') || null,
+  token: localStorage.getItem('alojaexpress_token') || null,
   user: getInitialUser(),
-  isAuthenticated: !!localStorage.getItem('booking_token'),
+  isAuthenticated: !!localStorage.getItem('alojaexpress_token'),
 
   login: (loginResponse) => {
     const decoded = jwtDecode(loginResponse.token);
     const userId = decoded.sub; // The JWT 'sub' claim contains the UsuarioId
 
-    localStorage.setItem('booking_token', loginResponse.token);
-    localStorage.setItem('booking_user', JSON.stringify({
+    localStorage.setItem('alojaexpress_token', loginResponse.token);
+    localStorage.setItem('alojaexpress_user', JSON.stringify({
       id: userId,
       clienteId: loginResponse.clienteId,
       colaboradorId: loginResponse.colaboradorId,
@@ -45,8 +45,8 @@ const useAuthStore = create((set) => ({
   },
 
   logout: () => {
-    localStorage.removeItem('booking_token');
-    localStorage.removeItem('booking_user');
+    localStorage.removeItem('alojaexpress_token');
+    localStorage.removeItem('alojaexpress_user');
     set({ token: null, user: null, isAuthenticated: false });
   },
 }));

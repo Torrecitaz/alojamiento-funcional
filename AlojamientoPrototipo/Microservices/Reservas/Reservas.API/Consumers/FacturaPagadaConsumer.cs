@@ -1,6 +1,7 @@
 using MassTransit;
 using Shared.Kernel.Events;
-using Reservas.DataManagement.Interfaces;
+using Reservas.Business.Interfaces;
+using Reservas.Business.DTOs;
 
 namespace Reservas.API.Consumers;
 
@@ -10,14 +11,14 @@ namespace Reservas.API.Consumers;
 /// </summary>
 public class FacturaPagadaConsumer : IConsumer<FacturaPagadaEvent>
 {
-    private readonly IReservasDataService _reservasDataService;
+    private readonly IReservasService _reservasService;
     private readonly ILogger<FacturaPagadaConsumer> _logger;
 
     public FacturaPagadaConsumer(
-        IReservasDataService reservasDataService,
+        IReservasService reservasService,
         ILogger<FacturaPagadaConsumer> logger)
     {
-        _reservasDataService = reservasDataService;
+        _reservasService = reservasService;
         _logger = logger;
     }
 
@@ -31,8 +32,8 @@ public class FacturaPagadaConsumer : IConsumer<FacturaPagadaEvent>
 
         try
         {
-            // Actualizar estado de la reserva a "Confirmada"
-            await _reservasDataService.UpdateStatusAsync(evento.ReservaId, "Confirmada");
+            // Actualizar estado de la reserva a "Confirmada" llamando al servicio para publicar los eventos de integración
+            await _reservasService.ActualizarEstadoAsync(evento.ReservaId, new ActualizarEstadoReservaRequest("Confirmada"));
 
             _logger.LogInformation(
                 "✅ Reserva {ReservaId} actualizada a 'Confirmada' tras pago de factura {FacturaId}",

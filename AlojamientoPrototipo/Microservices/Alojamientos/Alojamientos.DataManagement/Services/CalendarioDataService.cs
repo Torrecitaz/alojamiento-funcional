@@ -51,6 +51,11 @@ public class CalendarioDataService : ICalendarioDataService
         return entities.Any();
     }
 
+    public async Task<bool> ExistsBloqueoOcupacionWithLockAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin)
+    {
+        return await _repository.ExistsBloqueoOcupacionWithLockAsync(habitacionId, fechaInicio, fechaFin);
+    }
+
     public async Task EliminarFechasAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin)
     {
         var entities = await _repository.FindAsync(c =>

@@ -20,6 +20,8 @@ public class HabitacionesConfiguration : IEntityTypeConfiguration<HabitacionEnti
         builder.Property(h => h.TieneCocina).HasDefaultValue(false);
         builder.Property(h => h.TieneAireAcondicionado).HasDefaultValue(false);
         builder.Property(h => h.PrecioNoche).HasDefaultValue(0);
+        builder.Property(h => h.Estado).HasMaxLength(20).HasDefaultValue("Activo");
+        builder.Property(h => h.Fotos);
 
         // Relaciones
         builder.HasOne(h => h.Alojamiento)

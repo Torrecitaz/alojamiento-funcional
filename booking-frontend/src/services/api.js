@@ -10,7 +10,7 @@ const api = axios.create({
 
 // Interceptor: inyectar JWT en cada petición autenticada
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('booking_token');
+  const token = localStorage.getItem('alojaexpress_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -23,7 +23,7 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     if (status === 401) {
-      localStorage.removeItem('booking_token');
+      localStorage.removeItem('alojaexpress_token');
       window.location.href = '/login';
     }
     return Promise.reject(error);

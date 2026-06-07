@@ -2,6 +2,9 @@ using Microsoft.AspNetCore.Mvc;
 using ApiGateway.Models;
 using ApiGateway.Models.Internal;
 using System.Text.Json;
+using MassTransit;
+using ApiGateway.Hubs;
+using ApiGateway.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +70,41 @@ builder.Services.AddHttpClient("Facturacion", client =>
     client.BaseAddress = new Uri(url);
 });
 
+// Habilitar SignalR y Bus de Eventos con MassTransit
+builder.Services.AddSignalR();
+builder.Services.AddMassTransit(x =>
+{
+    x.AddConsumer<ReservaCreatedConsumer>();
+    x.AddConsumer<ReservaConfirmedConsumer>();
+    x.AddConsumer<ReservaCancelledConsumer>();
+    x.AddConsumer<HabitacionDisponibilidadChangedConsumer>();
+    x.AddConsumer<AlojamientoEstadoChangedConsumer>();
+
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var rmqUrl = builder.Configuration.GetConnectionString("RabbitMQ");
+        if (!string.IsNullOrEmpty(rmqUrl))
+        {
+            cfg.Host(new Uri(rmqUrl));
+        }
+        else
+        {
+            cfg.Host("localhost", "/", h =>
+            {
+                h.Username("guest");
+                h.Password("guest");
+            });
+        }
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
+builder.Services.Configure<MassTransitHostOptions>(options =>
+{
+    options.WaitUntilStarted = false;
+    options.StartTimeout = TimeSpan.FromSeconds(5);
+});
+
 // Agregar YARP Reverse Proxy
 builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("ReverseProxy"));
@@ -85,6 +123,8 @@ builder.Services.AddCors(options =>
 var app = builder.Build();
 
 app.UseCors("AllowAll");
+
+app.MapHub<BookingHub>("/bookingHub");
 
 // ── Interceptor de checkout ANTES de YARP ──────────────────────────────────
 // El path /api/v1/reservas/checkout es interceptado por YARP (reservas-internal-route).
@@ -856,34 +896,63 @@ app.MapPost("/api/reservas", async (
             habitaciones = internalHabitaciones
         };
         
+        var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+        var fechaFinExclusiva = request.FechaCheckOut.AddDays(-1);
+
         var reservasClient = httpClientFactory.CreateClient("Reservas");
-        var response = await reservasClient.PostAsJsonAsync("api/v1/Reservas", internalReq);
+        HttpResponseMessage response;
+        try
+        {
+            response = await reservasClient.PostAsJsonAsync("api/v1/Reservas", internalReq);
+        }
+        catch (Exception ex)
+        {
+            // Compensación: liberar fechas si falla la conexión al MS Reservas
+            foreach (var hab in request.Habitaciones)
+            {
+                var liberarReq = new
+                {
+                    habitacionId = hab.HabitacionId,
+                    fechaInicio = request.FechaCheckIn,
+                    fechaFin = fechaFinExclusiva
+                };
+                await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", liberarReq);
+            }
+            return Results.Json(ApiResponse<ReservaDto>.Fail($"Error de comunicación al crear reserva: {ex.Message}"), statusCode: 500);
+        }
         
         if (!response.IsSuccessStatusCode)
         {
             var errContent = await response.Content.ReadAsStringAsync();
+            // Compensación: liberar fechas si la creación falló en Reservas
+            foreach (var hab in request.Habitaciones)
+            {
+                var liberarReq = new
+                {
+                    habitacionId = hab.HabitacionId,
+                    fechaInicio = request.FechaCheckIn,
+                    fechaFin = fechaFinExclusiva
+                };
+                await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", liberarReq);
+            }
             return Results.Json(ApiResponse<ReservaDto>.Fail($"Error al crear reserva: {errContent}"), statusCode: (int)response.StatusCode);
         }
         
         var internalRes = await response.Content.ReadFromJsonAsync<ReservaInternalResponse>();
         if (internalRes == null)
         {
-            return Results.Json(ApiResponse<ReservaDto>.Fail("No se pudo obtener la reserva creada del microservicio."), statusCode: 500);
-        }
-        
-        // Block dates in calendar
-        var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
-        var fechaFinExclusiva = request.FechaCheckOut.AddDays(-1);
-        
-        foreach (var hab in request.Habitaciones)
-        {
-            var blockReq = new
+            // Compensación: liberar fechas si no pudimos leer la respuesta de la reserva
+            foreach (var hab in request.Habitaciones)
             {
-                habitacionId = hab.HabitacionId,
-                fechaInicio = request.FechaCheckIn,
-                fechaFin = fechaFinExclusiva
-            };
-            await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/bloquear", blockReq);
+                var liberarReq = new
+                {
+                    habitacionId = hab.HabitacionId,
+                    fechaInicio = request.FechaCheckIn,
+                    fechaFin = fechaFinExclusiva
+                };
+                await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", liberarReq);
+            }
+            return Results.Json(ApiResponse<ReservaDto>.Fail("No se pudo obtener la reserva creada del microservicio."), statusCode: 500);
         }
         
         // Resolve accommodation name
@@ -1243,6 +1312,832 @@ app.MapGet("/api/facturas/metodos-pago", async (
 .WithOpenApi();
 
 
+// ──────────────────────────────────────────────────────────────────────────
+// ENDPOINTS DE COMPATIBILIDAD CON FRONTEND (AlojaExpress)
+// ──────────────────────────────────────────────────────────────────────────
+
+app.MapGet("/api/v1/maestros/ciudades", () =>
+{
+    var ciudades = new[]
+    {
+        new { ciudadId = 1, nombre = "Quito", pais = "Ecuador" },
+        new { ciudadId = 2, nombre = "Guayaquil", pais = "Ecuador" },
+        new { ciudadId = 3, nombre = "Cuenca", pais = "Ecuador" },
+        new { ciudadId = 4, nombre = "Manta", pais = "Ecuador" }
+    };
+    return Results.Ok(ApiResponse<object>.Ok(ciudades));
+});
+
+app.MapGet("/api/v1/maestros/tipos-alojamiento", async (IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.GetAsync("api/v1/Alojamientos/tipos");
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Error al cargar tipos de alojamiento."), statusCode: (int)response.StatusCode);
+        }
+        var data = await response.Content.ReadFromJsonAsync<List<JsonElement>>();
+        return Results.Ok(ApiResponse<object>.Ok(data));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapGet("/api/v1/propiedades/buscar", async (
+    IHttpClientFactory httpClientFactory,
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20,
+    [FromQuery] string? search = null,
+    [FromQuery] string? ciudad = null,
+    [FromQuery] string? tipo = null,
+    [FromQuery] int? estrellas = null,
+    [FromQuery] bool? admiteMascotas = null,
+    [FromQuery] bool? tienePiscina = null) =>
+{
+    try
+    {
+        var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+        var response = await alojamientosClient.GetAsync("api/v1/Alojamientos");
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Json(ApiResponse<object>.Fail($"Error al obtener alojamientos: {response.ReasonPhrase}"), statusCode: (int)response.StatusCode);
+        }
+        
+        var rawList = await response.Content.ReadFromJsonAsync<List<AlojamientoInternalResponse>>();
+        if (rawList == null)
+        {
+            return Results.Ok(ApiResponse<object>.Ok(new { items = new List<AlojamientoDto>(), totalRecords = 0 }));
+        }
+        
+        var filteredList = rawList.Where(a => a.Estado != "Inactivo" && a.Estado != "Inactiva");
+        
+        if (!string.IsNullOrEmpty(search))
+        {
+            filteredList = filteredList.Where(a => 
+                a.Nombre.Contains(search, StringComparison.OrdinalIgnoreCase) || 
+                (a.Descripcion != null && a.Descripcion.Contains(search, StringComparison.OrdinalIgnoreCase)));
+        }
+        
+        if (!string.IsNullOrEmpty(ciudad))
+        {
+            filteredList = filteredList.Where(a => 
+                a.Ciudad != null && a.Ciudad.Contains(ciudad, StringComparison.OrdinalIgnoreCase));
+        }
+        
+        if (!string.IsNullOrEmpty(tipo))
+        {
+            filteredList = filteredList.Where(a => 
+                a.TipoAlojamientoNombre.Equals(tipo, StringComparison.OrdinalIgnoreCase));
+        }
+        
+        if (estrellas.HasValue)
+        {
+            filteredList = filteredList.Where(a => a.Estrellas >= estrellas.Value);
+        }
+        
+        if (admiteMascotas.HasValue)
+        {
+            filteredList = filteredList.Where(a => a.AdmiteMascotas == admiteMascotas.Value);
+        }
+        
+        if (tienePiscina.HasValue)
+        {
+            filteredList = filteredList.Where(a => a.TienePiscina == tienePiscina.Value);
+        }
+        
+        var listToPaginate = filteredList.ToList();
+        var paginatedList = listToPaginate
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .ToList();
+            
+        var tasks = paginatedList.Select(async item =>
+        {
+            decimal precioMin = 0;
+            string? imagenUrl = null;
+
+            var roomsTask = alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
+            var photosTask = alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
+
+            await Task.WhenAll(roomsTask, photosTask);
+
+            var roomsResponse = await roomsTask;
+            if (roomsResponse.IsSuccessStatusCode)
+            {
+                var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+                if (rooms != null && rooms.Count > 0)
+                {
+                    precioMin = rooms.Where(r => r.Estado != "Inactivo" && r.Estado != "Inactiva").Min(r => (decimal?)r.PrecioNoche) ?? 0;
+                }
+            }
+
+            var photosResponse = await photosTask;
+            if (photosResponse.IsSuccessStatusCode)
+            {
+                var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
+                if (photos != null && photos.Count > 0)
+                {
+                    imagenUrl = photos.OrderBy(p => p.Orden).First().Url;
+                }
+            }
+
+            return new AlojamientoDto
+            {
+                AlojamientoId = item.AlojamientoId,
+                Nombre = item.Nombre,
+                TipoAlojamiento = item.TipoAlojamientoNombre,
+                Ciudad = item.Ciudad ?? string.Empty,
+                Direccion = item.Direccion,
+                PrecioNocheMinimo = precioMin,
+                Moneda = "USD",
+                Estrellas = item.Estrellas,
+                ImagenUrl = imagenUrl,
+                AdmiteMascotas = item.AdmiteMascotas,
+                TienePiscina = item.TienePiscina,
+                TieneParqueadero = item.TieneParqueadero,
+                Disponible = true
+            };
+        });
+
+        var resultList = (await Task.WhenAll(tasks)).ToList();
+        
+        return Results.Ok(ApiResponse<object>.Ok(new
+        {
+            items = resultList,
+            totalRecords = listToPaginate.Count
+        }));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapGet("/api/v1/propiedades/colaborador/{colaboradorId:int}", async (
+    int colaboradorId,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+        var response = await alojamientosClient.GetAsync("api/v1/Alojamientos");
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Error al obtener alojamientos del microservicio."), statusCode: (int)response.StatusCode);
+        }
+        
+        var rawList = await response.Content.ReadFromJsonAsync<List<AlojamientoInternalResponse>>();
+        if (rawList == null)
+        {
+            return Results.Ok(ApiResponse<object>.Ok(new List<AlojamientoDto>()));
+        }
+        
+        var filtered = rawList.Where(a => a.SocioId == colaboradorId).ToList();
+        
+        var tasks = filtered.Select(async item =>
+        {
+            decimal precioMin = 0;
+            string? imagenUrl = null;
+
+            var roomsTask = alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
+            var photosTask = alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
+
+            await Task.WhenAll(roomsTask, photosTask);
+
+            var roomsResponse = await roomsTask;
+            if (roomsResponse.IsSuccessStatusCode)
+            {
+                var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+                if (rooms != null && rooms.Count > 0)
+                {
+                    precioMin = rooms.Where(r => r.Estado != "Inactivo" && r.Estado != "Inactiva").Min(r => (decimal?)r.PrecioNoche) ?? 0;
+                }
+            }
+
+            var photosResponse = await photosTask;
+            if (photosResponse.IsSuccessStatusCode)
+            {
+                var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
+                if (photos != null && photos.Count > 0)
+                {
+                    imagenUrl = photos.OrderBy(p => p.Orden).First().Url;
+                }
+            }
+
+            return new
+            {
+                propiedadId = item.AlojamientoId,
+                nombre = item.Nombre,
+                tipoAlojamiento = item.TipoAlojamientoNombre,
+                ciudad = item.Ciudad ?? string.Empty,
+                direccion = item.Direccion,
+                estrellas = item.Estrellas,
+                estado = item.Estado == "Activo" || item.Estado == "Activa" ? "Activa" : "Inactiva"
+            };
+        });
+
+        var resultList = await Task.WhenAll(tasks);
+        return Results.Ok(ApiResponse<object>.Ok(resultList));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapGet("/api/v1/propiedades/{id:int}", async (
+    int id,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+        var response = await alojamientosClient.GetAsync($"api/v1/Alojamientos/{id}");
+        if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Propiedad no encontrada."), statusCode: 404);
+        }
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Error al obtener la propiedad."), statusCode: (int)response.StatusCode);
+        }
+
+        var item = await response.Content.ReadFromJsonAsync<AlojamientoInternalResponse>();
+        if (item == null)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Propiedad no encontrada."), statusCode: 404);
+        }
+
+        // Obtener fotos
+        var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{id}");
+        var fotos = new List<FotoDto>();
+        if (photosResponse.IsSuccessStatusCode)
+        {
+            var rawPhotos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
+            if (rawPhotos != null)
+            {
+                fotos = rawPhotos.Select(p => new FotoDto { Url = p.Url, Descripcion = p.Descripcion }).ToList();
+            }
+        }
+
+        var detail = new
+        {
+            propiedadId = item.AlojamientoId,
+            nombre = item.Nombre,
+            tipoAlojamiento = item.TipoAlojamientoNombre,
+            ciudad = item.Ciudad ?? string.Empty,
+            direccion = item.Direccion,
+            descripcion = item.Descripcion,
+            estrellas = item.Estrellas,
+            admiteMascotas = item.AdmiteMascotas,
+            tienePiscina = item.TienePiscina,
+            tieneParqueadero = item.TieneParqueadero,
+            provincia = item.Provincia,
+            pais = item.Pais,
+            politicas = item.Politicas,
+            checkInTime = item.CheckInTime,
+            checkOutTime = item.CheckOutTime,
+            servicios = item.Servicios,
+            latitud = item.Latitud,
+            longitud = item.Longitud,
+            fotos = fotos
+        };
+
+        return Results.Ok(ApiResponse<object>.Ok(detail));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapPost("/api/v1/propiedades", async (
+    JsonElement payload,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var jsonText = payload.GetRawText();
+        var req = JsonSerializer.Deserialize<CrearPropiedadFrontendRequest>(jsonText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (req == null) return Results.Json(ApiResponse<object>.Fail("Payload inválido."), statusCode: 400);
+
+        string GetCiudadNombre(int ciudadId) => ciudadId switch
+        {
+            1 => "Quito",
+            2 => "Guayaquil",
+            3 => "Cuenca",
+            4 => "Manta",
+            _ => "Quito"
+        };
+
+        var backReq = new
+        {
+            socioId = req.ColaboradorId,
+            tipoAlojamientoId = req.TipoAlojamientoId,
+            nombre = req.Nombre,
+            ciudad = GetCiudadNombre(req.CiudadId),
+            direccion = req.Direccion,
+            descripcion = req.Descripcion,
+            admiteMascotas = req.AdmiteMascotas,
+            tienePiscina = false,
+            tieneParqueadero = false,
+            provincia = req.Provincia ?? "Pichincha",
+            pais = req.Pais ?? "Ecuador",
+            politicas = req.Politicas,
+            checkInTime = req.CheckInTime ?? "14:00",
+            checkOutTime = req.CheckOutTime ?? "11:00",
+            servicios = req.Servicios,
+            latitud = req.Latitud,
+            longitud = req.Longitud
+        };
+
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.PostAsJsonAsync("api/v1/Alojamientos", backReq);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al crear propiedad en el microservicio: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return Results.Json(ApiResponse<JsonElement>.Ok(result, "Propiedad creada con éxito."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapPut("/api/v1/propiedades/{id:int}", async (
+    int id,
+    JsonElement payload,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.PutAsJsonAsync($"api/v1/Alojamientos/{id}", payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al actualizar propiedad: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        return Results.Ok(ApiResponse<object>.Ok(null, "Propiedad actualizada con éxito."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapPatch("/api/v1/propiedades/{id:int}/estado", async (
+    int id,
+    JsonElement payload,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var root = payload.Clone();
+        string nuevoEstado = root.GetProperty("nuevoEstado").GetString() ?? "Activa";
+
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        
+        if (nuevoEstado.Equals("Inactiva", StringComparison.OrdinalIgnoreCase) || nuevoEstado.Equals("Inactivo", StringComparison.OrdinalIgnoreCase))
+        {
+            var deleteResponse = await client.DeleteAsync($"api/v1/Alojamientos/{id}");
+            if (!deleteResponse.IsSuccessStatusCode)
+            {
+                var err = await deleteResponse.Content.ReadAsStringAsync();
+                return Results.Json(ApiResponse<object>.Fail($"Error al desactivar propiedad: {err}"), statusCode: (int)deleteResponse.StatusCode);
+            }
+        }
+        else
+        {
+            // Para reactivar, primero obtenemos el alojamiento actual y luego hacemos un PUT con estado = "Activo"
+            var getRes = await client.GetAsync($"api/v1/Alojamientos/{id}");
+            if (!getRes.IsSuccessStatusCode) return Results.Json(ApiResponse<object>.Fail("No se pudo obtener la propiedad."), statusCode: 404);
+            
+            var existing = await getRes.Content.ReadFromJsonAsync<AlojamientoInternalResponse>();
+            if (existing != null)
+            {
+                var backReq = new
+                {
+                    nombre = existing.Nombre,
+                    ciudad = existing.Ciudad,
+                    direccion = existing.Direccion,
+                    descripcion = existing.Descripcion,
+                    tipoAlojamientoId = existing.TipoAlojamientoId,
+                    admiteMascotas = existing.AdmiteMascotas,
+                    tienePiscina = existing.TienePiscina,
+                    tieneParqueadero = existing.TieneParqueadero,
+                    estrellas = existing.Estrellas,
+                    provincia = existing.Provincia,
+                    pais = existing.Pais,
+                    politicas = existing.Politicas,
+                    checkInTime = existing.CheckInTime,
+                    checkOutTime = existing.CheckOutTime,
+                    servicios = existing.Servicios,
+                    latitud = existing.Latitud,
+                    longitud = existing.Longitud,
+                    estado = "Activo"
+                };
+                
+                var putResponse = await client.PutAsJsonAsync($"api/v1/Alojamientos/{id}", backReq);
+                if (!putResponse.IsSuccessStatusCode)
+                {
+                    var err = await putResponse.Content.ReadAsStringAsync();
+                    return Results.Json(ApiResponse<object>.Fail($"Error al activar propiedad: {err}"), statusCode: (int)putResponse.StatusCode);
+                }
+            }
+        }
+
+        return Results.Ok(ApiResponse<object>.Ok(null, "Estado actualizado con éxito."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapGet("/api/v1/habitaciones/propiedad/{propiedadId:int}", async (
+    int propiedadId,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{propiedadId}");
+        if (!response.IsSuccessStatusCode)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Error al obtener habitaciones del microservicio."), statusCode: (int)response.StatusCode);
+        }
+
+        var rawList = await response.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+        if (rawList == null) return Results.Ok(ApiResponse<object>.Ok(new List<object>()));
+
+        // Mapear al formato que espera el frontend
+        var mapped = rawList.Select(h => new
+        {
+            habitacionId = h.HabitacionId,
+            alojamientoId = h.AlojamientoId,
+            nombre = h.Nombre,
+            descripcion = h.Descripcion,
+            precioNoche = h.PrecioNoche,
+            capacidadAdultos = h.CapacidadAdultos,
+            capacidadNinos = h.CapacidadNinos,
+            numDormitorios = h.NumDormitorios,
+            numBanos = h.NumBanos,
+            tieneCocina = h.TieneCocina,
+            tieneAireAcondicionado = h.TieneAireAcondicionado,
+            superficieM2 = h.SuperficieM2,
+            estado = h.Estado ?? "Activo",
+            fotos = h.Fotos
+        }).ToList();
+
+        return Results.Ok(ApiResponse<object>.Ok(mapped));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapPost("/api/v1/habitaciones", async (
+    JsonElement payload,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.PostAsJsonAsync("api/v1/Habitaciones", payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al registrar habitación: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return Results.Json(ApiResponse<JsonElement>.Ok(result, "Habitación creada con éxito."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapPut("/api/v1/habitaciones/{id:int}", async (
+    int id,
+    JsonElement payload,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.PutAsJsonAsync($"api/v1/Habitaciones/{id}", payload);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al actualizar habitación: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        return Results.Ok(ApiResponse<object>.Ok(null, "Habitación actualizada con éxito."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+app.MapDelete("/api/v1/habitaciones/{id:int}", async (
+    int id,
+    IHttpClientFactory httpClientFactory) =>
+{
+    try
+    {
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.DeleteAsync($"api/v1/Habitaciones/{id}");
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al desactivar/eliminar habitación: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        return Results.Ok(ApiResponse<object>.Ok(null, "Habitación desactivada con éxito."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+});
+
+
+// ──────────────────────────────────────────────────────────────────────────
+// INTEGRACIÓN DE WEBHOOKS DE BOOKING (AlojaExpress)
+// ──────────────────────────────────────────────────────────────────────────
+
+app.MapPost("/api/integrations/booking/reservation-created", async (
+    HttpRequest request,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration config) =>
+{
+    if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
+    }
+
+    request.EnableBuffering();
+    using var reader = new StreamReader(request.Body, System.Text.Encoding.UTF8, true, 1024, true);
+    var bodyText = await reader.ReadToEndAsync();
+    request.Body.Position = 0;
+
+    if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
+    }
+
+    try
+    {
+        var bookingReq = JsonSerializer.Deserialize<CrearReservaRequest>(bodyText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (bookingReq == null)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Payload de reserva inválido."), statusCode: 400);
+        }
+
+        var client = httpClientFactory.CreateClient("Reservas");
+        var response = await client.PostAsJsonAsync("api/v1/Reservas", bookingReq);
+        
+        if (!response.IsSuccessStatusCode)
+        {
+            var error = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al registrar reserva en Reservas: {error}"), statusCode: (int)response.StatusCode);
+        }
+
+        var internalRes = await response.Content.ReadFromJsonAsync<ReservaInternalResponse>();
+        return Results.Json(ApiResponse<ReservaInternalResponse>.Ok(internalRes, "Reserva integrada correctamente desde Booking."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+})
+.WithName("BookingIntegrationReservationCreated")
+.WithTags("Integraciones")
+.WithOpenApi();
+
+app.MapPost("/api/integrations/booking/reservation-cancelled", async (
+    HttpRequest request,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration config) =>
+{
+    if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
+    }
+
+    request.EnableBuffering();
+    using var reader = new StreamReader(request.Body, System.Text.Encoding.UTF8, true, 1024, true);
+    var bodyText = await reader.ReadToEndAsync();
+    request.Body.Position = 0;
+
+    if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
+    }
+
+    try
+    {
+        var cancelPayload = JsonSerializer.Deserialize<CancelWebhookPayload>(bodyText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (cancelPayload == null || string.IsNullOrEmpty(cancelPayload.CodigoReserva))
+        {
+            return Results.Json(ApiResponse<object>.Fail("Código de reserva requerido."), statusCode: 400);
+        }
+
+        var client = httpClientFactory.CreateClient("Reservas");
+        var resResponse = await client.GetAsync($"api/v1/Reservas/codigo/{cancelPayload.CodigoReserva}");
+        if (!resResponse.IsSuccessStatusCode)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Reserva no encontrada en Reservas."), statusCode: 404);
+        }
+
+        var reservation = await resResponse.Content.ReadFromJsonAsync<ReservaInternalResponse>();
+        if (reservation == null)
+        {
+            return Results.Json(ApiResponse<object>.Fail("Reserva no encontrada."), statusCode: 404);
+        }
+
+        var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+        var fechaFinExclusiva = reservation.FechaCheckOut.AddDays(-1);
+        foreach (var det in reservation.DetallesHabitacion)
+        {
+            var releaseReq = new
+            {
+                habitacionId = det.HabitacionId,
+                fechaInicio = reservation.FechaCheckIn,
+                fechaFin = fechaFinExclusiva
+            };
+            await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", releaseReq);
+        }
+
+        var statusReq = new { estado = "Cancelada" };
+        var patchResponse = await client.PatchAsJsonAsync($"api/v1/Reservas/{reservation.ReservaId}/estado", statusReq);
+        if (!patchResponse.IsSuccessStatusCode)
+        {
+            var err = await patchResponse.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al actualizar estado en Reservas: {err}"), statusCode: (int)patchResponse.StatusCode);
+        }
+
+        return Results.Ok(ApiResponse<object>.Ok(null, "Reserva cancelada correctamente desde Booking."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+})
+.WithName("BookingIntegrationReservationCancelled")
+.WithTags("Integraciones")
+.WithOpenApi();
+
+app.MapPost("/api/integrations/booking/property-created", async (
+    HttpRequest request,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration config) =>
+{
+    if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
+    }
+
+    request.EnableBuffering();
+    using var reader = new StreamReader(request.Body, System.Text.Encoding.UTF8, true, 1024, true);
+    var bodyText = await reader.ReadToEndAsync();
+    request.Body.Position = 0;
+
+    if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
+    }
+
+    try
+    {
+        var propReq = JsonSerializer.Deserialize<JsonElement>(bodyText);
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.PostAsJsonAsync("api/v1/Alojamientos", propReq);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al crear propiedad en Alojamientos: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        var result = await response.Content.ReadFromJsonAsync<JsonElement>();
+        return Results.Json(ApiResponse<JsonElement>.Ok(result, "Propiedad creada desde Booking."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+})
+.WithName("BookingIntegrationPropertyCreated")
+.WithTags("Integraciones")
+.WithOpenApi();
+
+app.MapPost("/api/integrations/booking/property-updated", async (
+    HttpRequest request,
+    IHttpClientFactory httpClientFactory,
+    IConfiguration config) =>
+{
+    if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
+    }
+
+    request.EnableBuffering();
+    using var reader = new StreamReader(request.Body, System.Text.Encoding.UTF8, true, 1024, true);
+    var bodyText = await reader.ReadToEndAsync();
+    request.Body.Position = 0;
+
+    if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
+    {
+        return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
+    }
+
+    try
+    {
+        var payload = JsonSerializer.Deserialize<PropertyUpdatePayload>(bodyText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        if (payload == null || payload.AlojamientoId <= 0)
+        {
+            return Results.Json(ApiResponse<object>.Fail("AlojamientoId inválido."), statusCode: 400);
+        }
+
+        var client = httpClientFactory.CreateClient("Alojamientos");
+        var response = await client.PutAsJsonAsync($"api/v1/Alojamientos/{payload.AlojamientoId}", payload.Data);
+        if (!response.IsSuccessStatusCode)
+        {
+            var err = await response.Content.ReadAsStringAsync();
+            return Results.Json(ApiResponse<object>.Fail($"Error al actualizar propiedad en Alojamientos: {err}"), statusCode: (int)response.StatusCode);
+        }
+
+        return Results.Ok(ApiResponse<object>.Ok(null, "Propiedad actualizada desde Booking."));
+    }
+    catch (Exception ex)
+    {
+        return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+    }
+})
+.WithName("BookingIntegrationPropertyUpdated")
+.WithTags("Integraciones")
+.WithOpenApi();
+
+
 app.MapReverseProxy();
 
 app.Run();
+
+// ──────────────────────────────────────────────────────────────────────────
+// FUNCIONES AUXILIARES Y DTOs DE INTEGRACIÓN
+// ──────────────────────────────────────────────────────────────────────────
+
+static bool VerifySignature(string bodyText, string? signatureHeader, string secret)
+{
+    if (string.IsNullOrEmpty(signatureHeader) || string.IsNullOrEmpty(secret)) return false;
+    
+    var sig = signatureHeader.Trim();
+    if (sig.StartsWith("sha256=", StringComparison.OrdinalIgnoreCase))
+    {
+        sig = sig.Substring(7);
+    }
+
+    var secretBytes = System.Text.Encoding.UTF8.GetBytes(secret);
+    var bodyBytes = System.Text.Encoding.UTF8.GetBytes(bodyText);
+    using var hmac = new System.Security.Cryptography.HMACSHA256(secretBytes);
+    var hashBytes = hmac.ComputeHash(bodyBytes);
+    var computedSignature = Convert.ToHexString(hashBytes).ToLower();
+    
+    return computedSignature.Equals(sig, StringComparison.OrdinalIgnoreCase);
+}
+
+public record CancelWebhookPayload(string CodigoReserva);
+public record PropertyUpdatePayload(int AlojamientoId, JsonElement Data);
+
+public record CrearPropiedadFrontendRequest(
+    string Nombre,
+    string Descripcion,
+    string Direccion,
+    int CiudadId,
+    int TipoAlojamientoId,
+    int Estrellas,
+    bool AdmiteMascotas,
+    int ColaboradorId,
+    string? Provincia = null,
+    string? Pais = null,
+    string? Politicas = null,
+    string? CheckInTime = null,
+    string? CheckOutTime = null,
+    string? Servicios = null,
+    double? Latitud = null,
+    double? Longitud = null
+);

@@ -35,6 +35,15 @@ public class AlojamientoDataModel
     public DateTime FechaCreacion { get; set; }
     public DateTime? FechaModificacion { get; set; }
 
+    public string? Provincia { get; set; }
+    public string? Pais { get; set; }
+    public string? Politicas { get; set; }
+    public string? CheckInTime { get; set; }
+    public string? CheckOutTime { get; set; }
+    public string? Servicios { get; set; }
+    public double? Latitud { get; set; }
+    public double? Longitud { get; set; }
+
     public TipoAlojamientoDataModel? TipoAlojamiento { get; set; }
     public List<AlojamientoFotoDataModel> Fotos { get; set; } = new();
 }
@@ -62,5 +71,7 @@ public class HabitacionDataModel
     public bool TieneAireAcondicionado { get; set; }
     public decimal? SuperficieM2 { get; set; }
     public decimal PrecioNoche { get; set; }
+    public string Estado { get; set; } = "Activo";
+    public string? Fotos { get; set; }
     public DateTime? FechaModificacion { get; set; }
 }

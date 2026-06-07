@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Alojamientos.DataAccess.Contexts;
 using Alojamientos.API.Extensions;
 using Alojamientos.API.Middleware;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -12,6 +13,34 @@ builder.Services.AddDbContext<AlojamientosDbContext>(options =>
 
 // ── 2. Dependencias de la Aplicación ─────────────────
 builder.Services.AddApplicationServices();
+
+// ── Event Bus (MassTransit + RabbitMQ) ────────────────
+builder.Services.AddMassTransit(x =>
+{
+    x.UsingRabbitMq((context, cfg) =>
+    {
+        var rmqUrl = builder.Configuration.GetConnectionString("RabbitMQ");
+        if (!string.IsNullOrEmpty(rmqUrl))
+        {
+            cfg.Host(new Uri(rmqUrl));
+        }
+        else
+        {
+            cfg.Host("localhost", "/", h =>
+            {
+                h.Username("guest");
+                h.Password("guest");
+            });
+        }
+        cfg.ConfigureEndpoints(context);
+    });
+});
+
+builder.Services.Configure<MassTransitHostOptions>(options =>
+{
+    options.WaitUntilStarted = false;
+    options.StartTimeout = TimeSpan.FromSeconds(5);
+});
 
 // ── 3. Presentación (Controllers & gRPC) ───────────────
 builder.Services.AddControllers();

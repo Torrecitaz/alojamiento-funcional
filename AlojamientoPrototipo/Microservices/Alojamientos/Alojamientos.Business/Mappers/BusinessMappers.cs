@@ -23,7 +23,15 @@ public static class AlojamientosBusinessMapper
         model.TienePiscina,
         model.TieneParqueadero,
         model.Estado,
-        model.FechaCreacion
+        model.FechaCreacion,
+        model.Provincia,
+        model.Pais,
+        model.Politicas,
+        model.CheckInTime,
+        model.CheckOutTime,
+        model.Servicios,
+        model.Latitud,
+        model.Longitud
     );
 
     public static HabitacionResponse ToResponse(HabitacionDataModel model) => new(
@@ -38,7 +46,9 @@ public static class AlojamientosBusinessMapper
         model.TieneCocina,
         model.TieneAireAcondicionado,
         model.SuperficieM2,
-        model.PrecioNoche
+        model.PrecioNoche,
+        model.Estado,
+        model.Fotos
     );
 
     public static FotoResponse ToResponse(AlojamientoFotoDataModel model) => new(

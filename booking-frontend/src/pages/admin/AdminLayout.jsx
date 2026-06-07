@@ -18,7 +18,7 @@ export default function AdminLayout() {
         <div className="admin-brand">
           <span className="brand-icon">✦</span>
           <div>
-            <span className="admin-brand-text">BookingPro</span>
+            <span className="admin-brand-text">AlojaExpress</span>
             <span className="admin-role">{user?.roles?.includes('Administrador') ? 'Panel Admin' : 'Panel Socio'}</span>
           </div>
         </div>
@@ -32,6 +32,9 @@ export default function AdminLayout() {
           </NavLink>
           <NavLink to="/admin/habitaciones" className="admin-nav-link">
             <HiOutlineKey size={18} /> Habitaciones
+          </NavLink>
+          <NavLink to="/admin/calendario" className="admin-nav-link">
+            <HiOutlineCalendar size={18} /> Calendario
           </NavLink>
           
           {user?.roles?.includes('Administrador') && (

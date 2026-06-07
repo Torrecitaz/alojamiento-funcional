@@ -39,6 +39,14 @@ public static class AlojamientosMapper
         Estado = entity.Estado,
         FechaCreacion = entity.FechaCreacion,
         FechaModificacion = entity.FechaModificacion,
+        Provincia = entity.Provincia,
+        Pais = entity.Pais,
+        Politicas = entity.Politicas,
+        CheckInTime = entity.CheckInTime,
+        CheckOutTime = entity.CheckOutTime,
+        Servicios = entity.Servicios,
+        Latitud = entity.Coordenadas?.X,
+        Longitud = entity.Coordenadas?.Y,
         TipoAlojamiento = entity.TipoAlojamiento != null ? ToDataModel(entity.TipoAlojamiento) : null,
         Fotos = entity.Fotos?.Select(ToDataModel).ToList() ?? new List<AlojamientoFotoDataModel>()
     };
@@ -57,6 +65,8 @@ public static class AlojamientosMapper
         TieneAireAcondicionado = entity.TieneAireAcondicionado,
         SuperficieM2 = entity.SuperficieM2,
         PrecioNoche = entity.PrecioNoche,
+        Estado = entity.Estado,
+        Fotos = entity.Fotos,
         FechaModificacion = entity.FechaModificacion
     };
 
@@ -80,6 +90,23 @@ public static class AlojamientosMapper
         entity.TienePiscina = model.TienePiscina;
         entity.TieneParqueadero = model.TieneParqueadero;
         entity.TipoAlojamientoId = model.TipoAlojamientoId;
+        entity.Estado = model.Estado;
+        entity.Provincia = model.Provincia;
+        entity.Pais = model.Pais;
+        entity.Politicas = model.Politicas;
+        entity.CheckInTime = model.CheckInTime;
+        entity.CheckOutTime = model.CheckOutTime;
+        entity.Servicios = model.Servicios;
+        
+        if (model.Latitud.HasValue && model.Longitud.HasValue)
+        {
+            entity.Coordenadas = new NpgsqlTypes.NpgsqlPoint(model.Latitud.Value, model.Longitud.Value);
+        }
+        else
+        {
+            entity.Coordenadas = null;
+        }
+
         entity.FechaModificacion = DateTime.UtcNow;
     }
 
@@ -95,6 +122,8 @@ public static class AlojamientosMapper
         entity.TieneAireAcondicionado = model.TieneAireAcondicionado;
         entity.SuperficieM2 = model.SuperficieM2;
         entity.PrecioNoche = model.PrecioNoche;
+        entity.Estado = model.Estado;
+        entity.Fotos = model.Fotos;
         entity.FechaModificacion = DateTime.UtcNow;
     }
 }

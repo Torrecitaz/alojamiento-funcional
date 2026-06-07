@@ -23,31 +23,33 @@ public class CalendarioGrpcService : CalendarioGrpc.CalendarioGrpcBase
             var fechaFin = DateOnly.Parse(request.FechaFin);
             var fechaFinExclusiva = fechaFin.AddDays(-1);
 
-            // Obtener disponibilidad mensual (para simplicidad de este prototipo, asumiendo que el rango no es mayor a 1 mes, o verificando manualmente)
-            // Una mejor aproximación sería crear un método en ICalendarioService que verifique el cruce de fechas directamente.
-            
-            // Para mantenerlo sencillo, intentaremos bloquear usando un "dry-run" o simplemente usaremos el servicio de base de datos.
-            // Dado que no queremos exponer el UnitOfWork aquí, vamos a asumir que necesitamos un método en ICalendarioService
-            // que solo verifique si hay cruce (ExistsBloqueoOcupacionAsync en el DataService).
-            // Por ahora, simularemos que verificamos consultando el mes de inicio:
-            var disponibilidad = await _calendarioService.GetDisponibilidadMensualAsync(request.HabitacionId, fechaInicio.Month, fechaInicio.Year);
-            
-            // Verificamos si hay alguna fecha ocupada/bloqueada en el rango
-            var cruce = disponibilidad.Any(d => d.Fecha >= fechaInicio && d.Fecha <= fechaFinExclusiva && (d.Estado == "Ocupado" || d.Estado == "Bloqueado"));
-
-            if (cruce)
+            // Intentar bloquear transaccionalmente las fechas en el calendario como 'Ocupado'
+            try
             {
+                await _calendarioService.BloquearFechasAsync(new Alojamientos.Business.DTOs.BloquearFechasRequest
+                {
+                    HabitacionId = request.HabitacionId,
+                    FechaInicio = fechaInicio,
+                    FechaFin = fechaFinExclusiva,
+                    Estado = "Ocupado"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning("Disponibilidad no confirmada para Habitación {HabitacionId} en [{Inicio} - {Fin}]: {Msg}", 
+                    request.HabitacionId, request.FechaInicio, request.FechaFin, ex.Message);
+                
                 return new DisponibilidadResponse
                 {
                     Disponible = false,
-                    Mensaje = "Las fechas seleccionadas ya no están disponibles."
+                    Mensaje = $"Las fechas seleccionadas ya no están disponibles: {ex.Message}"
                 };
             }
 
             return new DisponibilidadResponse
             {
                 Disponible = true,
-                Mensaje = "Fechas disponibles."
+                Mensaje = "Fechas disponibles y reservadas."
             };
         }
         catch (Exception ex)

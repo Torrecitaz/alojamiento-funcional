@@ -55,7 +55,7 @@ export default function AdminDashboard() {
     <div>
       <div className="admin-page-header">
         <h1 className="admin-page-title">Dashboard</h1>
-        <p className="admin-page-subtitle">Resumen general del sistema BookingPro</p>
+        <p className="admin-page-subtitle">Resumen general del sistema AlojaExpress</p>
       </div>
 
       <div className="stats-grid">

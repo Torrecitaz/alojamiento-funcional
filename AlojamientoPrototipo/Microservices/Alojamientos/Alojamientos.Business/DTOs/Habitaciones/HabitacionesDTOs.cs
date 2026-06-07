@@ -13,7 +13,8 @@ public record CrearHabitacionRequest(
     bool TieneCocina = false,
     bool TieneAireAcondicionado = false,
     decimal? SuperficieM2 = null,
-    [Required] [Range(0, 10000)] decimal PrecioNoche = 0
+    [Required] [Range(0, 10000)] decimal PrecioNoche = 0,
+    string? Fotos = null
 );
 
 public record ActualizarHabitacionRequest(
@@ -26,7 +27,9 @@ public record ActualizarHabitacionRequest(
     bool TieneCocina,
     bool TieneAireAcondicionado,
     decimal? SuperficieM2,
-    [Required] [Range(0, 10000)] decimal PrecioNoche
+    [Required] [Range(0, 10000)] decimal PrecioNoche,
+    string? Fotos = null,
+    [MaxLength(20)] string? Estado = "Activo"
 );
 
 public record HabitacionResponse(
@@ -41,5 +44,7 @@ public record HabitacionResponse(
     bool TieneCocina,
     bool TieneAireAcondicionado,
     decimal? SuperficieM2,
-    decimal PrecioNoche
+    decimal PrecioNoche,
+    string Estado = "Activo",
+    string? Fotos = null
 );

@@ -39,7 +39,7 @@ public static class ServiceCollectionExtensions
         {
             o.Address = new Uri(grpcUrl);
         })
-        .ConfigurePrimaryHttpMessageHandler(() => new Grpc.Net.Client.Web.GrpcWebHandler(new HttpClientHandler()));
+        .ConfigurePrimaryHttpMessageHandler(() => new Grpc.Net.Client.Web.GrpcWebHandler(new System.Net.Http.HttpClientHandler()) { HttpVersion = System.Net.HttpVersion.Version11 });
 
         return services;
     }

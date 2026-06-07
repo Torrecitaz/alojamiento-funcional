@@ -14,6 +14,7 @@ import AdminLayout from './pages/admin/AdminLayout';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminPropiedades from './pages/admin/AdminPropiedades';
 import AdminHabitaciones from './pages/admin/AdminHabitaciones';
+import CalendarioAdmin from './pages/admin/CalendarioAdmin';
 import AdminColaboradores from './pages/admin/AdminColaboradores';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminReservas from './pages/admin/AdminReservas';
@@ -51,6 +52,7 @@ export default function App() {
           <Route index element={<AdminDashboard />} />
           <Route path="propiedades" element={<AdminPropiedades />} />
           <Route path="habitaciones" element={<AdminHabitaciones />} />
+          <Route path="calendario" element={<CalendarioAdmin />} />
           <Route path="usuarios" element={<AdminUsuarios />} />
           <Route path="colaboradores" element={<AdminColaboradores />} />
           <Route path="reservas" element={<AdminReservas />} />

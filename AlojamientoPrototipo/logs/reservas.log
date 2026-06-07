@@ -1,2 +1,12 @@
-Usando la configuración de inicio de Microservices\Reservas\Reservas.API\Properties\launchSettings.json...
-Compilando...
+info: MassTransit[0]
+      Configured endpoint FacturaPagada, Consumer: Reservas.API.Consumers.FacturaPagadaConsumer
+info: Microsoft.Hosting.Lifetime[14]
+      Now listening on: http://localhost:5003
+info: Microsoft.Hosting.Lifetime[0]
+      Application started. Press Ctrl+C to shut down.
+info: Microsoft.Hosting.Lifetime[0]
+      Hosting environment: Production
+info: Microsoft.Hosting.Lifetime[0]
+      Content root path: C:\Users\Torres\Sistema Alojamiento RDA3\AlojamientoPrototipo
+info: MassTransit[0]
+      Bus started: rabbitmq://localhost/

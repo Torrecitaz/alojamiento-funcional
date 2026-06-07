@@ -20,6 +20,7 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
+            Console.Error.WriteLine($"[ERROR] Reservas API Exception: {ex}");
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -31,6 +32,7 @@ public class ExceptionHandlingMiddleware
             ReservaNotFoundException => HttpStatusCode.NotFound,
             FechasInvalidasException => HttpStatusCode.BadRequest,
             DescuentoInvalidoException => HttpStatusCode.BadRequest,
+            BusinessRuleException => HttpStatusCode.Conflict,
             KeyNotFoundException => HttpStatusCode.NotFound,
             _ => HttpStatusCode.InternalServerError
         };

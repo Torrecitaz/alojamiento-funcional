@@ -25,6 +25,12 @@ public class HabitacionEntity
     public bool TieneAireAcondicionado { get; set; } = false;
     public decimal? SuperficieM2 { get; set; }
     public decimal PrecioNoche { get; set; } = 0;
+
+    [MaxLength(20)]
+    public string Estado { get; set; } = "Activo"; // Activo, Inactivo
+
+    public string? Fotos { get; set; } // URLs delimitadas por comas
+
     public DateTime? FechaModificacion { get; set; }
 
     // Navegación

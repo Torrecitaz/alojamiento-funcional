@@ -1,0 +1,267 @@
+.calendar-container {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+  margin-top: 20px;
+}
+
+@media (min-width: 1024px) {
+  .calendar-container {
+    grid-template-columns: 3fr 1fr;
+  }
+}
+
+.calendar-card {
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  padding: 24px;
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.calendar-card:hover {
+  box-shadow: var(--shadow-lg, 0 10px 15px -3px rgba(0, 0, 0, 0.1));
+}
+
+.calendar-header-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.calendar-nav-btn {
+  background: var(--color-bg, #f7fafc);
+  border: 1px solid var(--color-border, #e2e8f0);
+  color: var(--color-text, #2d3748);
+  padding: 8px 16px;
+  border-radius: var(--radius-md, 6px);
+  cursor: pointer;
+  font-weight: 600;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.calendar-nav-btn:hover:not(:disabled) {
+  background: var(--color-primary-dark, #2b6cb0);
+  color: #fff;
+  border-color: var(--color-primary-dark, #2b6cb0);
+}
+
+.calendar-nav-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.calendar-current-month {
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--color-primary, #2b6cb0);
+  text-transform: capitalize;
+}
+
+/* ── Calendar Grid ─────────────────────────── */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
+}
+
+.calendar-day-header {
+  text-align: center;
+  padding: 10px 0;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #718096);
+  letter-spacing: 0.05em;
+  border-bottom: 2px solid var(--color-border, #e2e8f0);
+  margin-bottom: 8px;
+}
+
+.calendar-day-cell {
+  aspect-ratio: 1.1;
+  border-radius: var(--radius-md, 8px);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  position: relative;
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  border: 1px solid var(--color-border, #e2e8f0);
+  font-weight: 600;
+}
+
+.calendar-day-cell:hover:not(.empty-cell) {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.calendar-day-number {
+  font-size: 0.95rem;
+  color: var(--color-text, #2d3748);
+}
+
+.empty-cell {
+  background: var(--color-bg, #f7fafc);
+  opacity: 0.4;
+  cursor: default;
+  border: 1px dashed var(--color-border, #e2e8f0);
+}
+
+/* ── Status Colors ────────────────────────── */
+.day-disponible {
+  background: rgba(72, 187, 120, 0.08);
+  border-color: rgba(72, 187, 120, 0.3);
+  color: #22543d;
+}
+
+.day-disponible:hover {
+  background: rgba(72, 187, 120, 0.15);
+  border-color: rgba(72, 187, 120, 0.5);
+}
+
+.day-disponible .day-status-label {
+  color: #2f855a;
+  background: rgba(72, 187, 120, 0.2);
+}
+
+.day-ocupado {
+  background: rgba(245, 101, 101, 0.08);
+  border-color: rgba(245, 101, 101, 0.3);
+  color: #742a2a;
+}
+
+.day-ocupado:hover {
+  background: rgba(245, 101, 101, 0.15);
+  border-color: rgba(245, 101, 101, 0.5);
+}
+
+.day-ocupado .day-status-label {
+  color: #c53030;
+  background: rgba(245, 101, 101, 0.2);
+}
+
+.day-bloqueado {
+  background: rgba(160, 174, 192, 0.12);
+  border-color: rgba(160, 174, 192, 0.4);
+  color: #2d3748;
+}
+
+.day-bloqueado:hover {
+  background: rgba(160, 174, 192, 0.2);
+  border-color: rgba(160, 174, 192, 0.6);
+}
+
+.day-bloqueado .day-status-label {
+  color: #4a5568;
+  background: rgba(160, 174, 192, 0.25);
+}
+
+.day-status-label {
+  font-size: 0.68rem;
+  padding: 2px 6px;
+  border-radius: 4px;
+  align-self: flex-start;
+  margin-top: 4px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+/* ── Calendar Legend ───────────────────────── */
+.calendar-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border, #e2e8f0);
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.legend-color {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  border: 1px solid;
+}
+
+.legend-disponible { background: rgba(72, 187, 120, 0.15); border-color: rgba(72, 187, 120, 0.5); }
+.legend-ocupado { background: rgba(245, 101, 101, 0.15); border-color: rgba(245, 101, 101, 0.5); }
+.legend-bloqueado { background: rgba(160, 174, 192, 0.2); border-color: rgba(160, 174, 192, 0.6); }
+
+/* ── Panel de Bloqueo/Liberación ───────────────── */
+.control-card {
+  background: var(--color-surface, #ffffff);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--color-border, #e2e8f0);
+  box-shadow: var(--shadow-md, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  padding: 24px;
+  height: fit-content;
+}
+
+.control-card-title {
+  margin-top: 0;
+  margin-bottom: 16px;
+  font-family: var(--font-serif, Georgia, serif);
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--color-primary, #2b6cb0);
+}
+
+.control-form-group {
+  margin-bottom: 14px;
+}
+
+.control-form-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  margin-bottom: 4px;
+  color: var(--color-text, #2d3748);
+}
+
+.signalr-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #48bb78;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  background: rgba(72, 187, 120, 0.12);
+}
+
+.signalr-indicator.offline {
+  color: rgba(245, 101, 101, 0.8);
+  background: rgba(245, 101, 101, 0.12);
+}
+
+.signalr-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background-color: currentColor;
+  animation: pulse 1.8s infinite alternate;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  100% { transform: scale(1.2); opacity: 1; }
+}

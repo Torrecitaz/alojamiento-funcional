@@ -47,7 +47,9 @@ public class HabitacionesService : IHabitacionesService
             TieneCocina = request.TieneCocina,
             TieneAireAcondicionado = request.TieneAireAcondicionado,
             SuperficieM2 = request.SuperficieM2,
-            PrecioNoche = request.PrecioNoche
+            PrecioNoche = request.PrecioNoche,
+            Estado = "Activo",
+            Fotos = request.Fotos
         };
 
         var created = await _dataService.CreateAsync(model);
@@ -69,6 +71,8 @@ public class HabitacionesService : IHabitacionesService
         existing.TieneAireAcondicionado = request.TieneAireAcondicionado;
         existing.SuperficieM2 = request.SuperficieM2;
         existing.PrecioNoche = request.PrecioNoche;
+        if (!string.IsNullOrEmpty(request.Estado)) existing.Estado = request.Estado;
+        existing.Fotos = request.Fotos;
 
         await _dataService.UpdateAsync(existing);
     }
@@ -78,6 +82,7 @@ public class HabitacionesService : IHabitacionesService
         var existing = await _dataService.GetByIdAsync(id)
             ?? throw new HabitacionNotFoundException(id);
 
-        await _dataService.DeleteAsync(id);
+        existing.Estado = "Inactivo";
+        await _dataService.UpdateAsync(existing);
     }
 }

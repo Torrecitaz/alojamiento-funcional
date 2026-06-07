@@ -20,7 +20,15 @@ public record AlojamientoInternalResponse(
     bool TienePiscina,
     bool TieneParqueadero,
     string Estado,
-    DateTime FechaCreacion
+    DateTime FechaCreacion,
+    string? Provincia = null,
+    string? Pais = null,
+    string? Politicas = null,
+    string? CheckInTime = null,
+    string? CheckOutTime = null,
+    string? Servicios = null,
+    double? Latitud = null,
+    double? Longitud = null
 );
 
 public record HabitacionInternalResponse(
@@ -35,7 +43,9 @@ public record HabitacionInternalResponse(
     bool TieneCocina,
     bool TieneAireAcondicionado,
     decimal? SuperficieM2,
-    decimal PrecioNoche
+    decimal PrecioNoche,
+    string Estado = "Activo",
+    string? Fotos = null
 );
 
 public record FotoInternalResponse(

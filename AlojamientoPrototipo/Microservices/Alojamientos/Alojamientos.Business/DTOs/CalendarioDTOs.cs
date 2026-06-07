@@ -20,6 +20,8 @@ public record BloquearFechasRequest
     
     [Required]
     public DateOnly FechaFin { get; init; }
+
+    public string Estado { get; init; } = "Bloqueado";
 }
 
 public record LiberarFechasRequest

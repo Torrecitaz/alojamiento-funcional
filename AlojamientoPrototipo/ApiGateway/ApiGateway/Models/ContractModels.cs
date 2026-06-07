@@ -2,11 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 
+using System.Text.Json.Serialization;
+
 namespace ApiGateway.Models;
 
 public class ApiResponse<T>
 {
     public bool Success { get; set; }
+
+    [JsonPropertyName("datos")]
     public T? Data { get; set; }
     public string? Message { get; set; }
     public List<string> Errors { get; set; } = new();
@@ -177,6 +181,9 @@ public record CrearReservaHabitacionDto
     
     [Required]
     public decimal PrecioPorNoche { get; init; }
+    
+    [Required]
+    public int NumNoches { get; init; }
 }
 
 public record FacturaDto

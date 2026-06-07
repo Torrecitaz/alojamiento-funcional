@@ -7,7 +7,7 @@ export default function Footer() {
         <div className="footer-grid">
           <div className="footer-col">
             <h4 className="footer-brand">
-              <span className="brand-icon">✦</span> BookingPro
+              <span className="brand-icon">✦</span> AlojaExpress
             </h4>
             <p className="footer-desc">
               Tu destino premium para reservas de hospedaje. Tecnología de punta respaldada por una arquitectura segura.
@@ -38,7 +38,7 @@ export default function Footer() {
           </div>
         </div>
         <div className="footer-bottom">
-          <p>&copy; {new Date().getFullYear()} BookingPro — Microservicio de Clientes. Todos los derechos reservados.</p>
+          <p>&copy; {new Date().getFullYear()} AlojaExpress — Microservicio de Clientes. Todos los derechos reservados.</p>
         </div>
       </div>
     </footer>

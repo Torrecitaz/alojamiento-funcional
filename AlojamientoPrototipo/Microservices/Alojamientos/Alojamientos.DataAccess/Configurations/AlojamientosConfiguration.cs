@@ -20,6 +20,13 @@ public class AlojamientosConfiguration : IEntityTypeConfiguration<AlojamientoEnt
         builder.Property(a => a.AdmiteMascotas).HasDefaultValue(false);
         builder.Property(a => a.TienePiscina).HasDefaultValue(false);
         builder.Property(a => a.TieneParqueadero).HasDefaultValue(false);
+        builder.Property(a => a.Provincia).HasMaxLength(100);
+        builder.Property(a => a.Pais).HasMaxLength(100);
+        builder.Property(a => a.Politicas);
+        builder.Property(a => a.CheckInTime).HasMaxLength(50);
+        builder.Property(a => a.CheckOutTime).HasMaxLength(50);
+        builder.Property(a => a.Servicios);
+        builder.Property(a => a.Coordenadas).HasColumnType("point");
         builder.Property(a => a.FechaCreacion).HasDefaultValueSql("CURRENT_TIMESTAMP");
 
         // Relaciones
