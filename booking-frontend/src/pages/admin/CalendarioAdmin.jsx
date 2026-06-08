@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { 
   HiOutlineCalendar, 
   HiOutlineLockClosed, 
@@ -12,7 +12,7 @@ import {
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useAuthStore from '../../store/useAuthStore';
-import { HubConnectionBuilder, HubConnectionState, LogLevel } from '@microsoft/signalr';
+import useSignalR from '../../hooks/useSignalR';
 import './CalendarioAdmin.css';
 
 export default function CalendarioAdmin() {
@@ -39,9 +39,8 @@ export default function CalendarioAdmin() {
   const [tipoOperacion, setTipoOperacion] = useState('bloquear'); // 'bloquear' | 'liberar'
   const [estadoBloqueo, setEstadoBloqueo] = useState('Bloqueado');
 
-  // SignalR State
-  const [signalrConectado, setSignalrConectado] = useState(false);
-  const signalrConnectionRef = useRef(null);
+  // Shared SignalR Connection
+  const { connection, isConnected } = useSignalR();
 
   // 1. Cargar Propiedades
   useEffect(() => {
@@ -118,20 +117,9 @@ export default function CalendarioAdmin() {
 
   // 4. Configurar SignalR en tiempo real
   useEffect(() => {
-    if (!habitacionSeleccionada) return;
+    if (!connection || !habitacionSeleccionada) return;
 
-    // Crear conexión a /bookingHub
-    const connectionUrl = `${window.location.origin}/bookingHub`;
-    const connection = new HubConnectionBuilder()
-      .withUrl(connectionUrl)
-      .configureLogging(LogLevel.Warning)
-      .withAutomaticReconnect()
-      .build();
-
-    signalrConnectionRef.current = connection;
-
-    // Escuchar el evento de disponibilidad
-    connection.on('OnAvailabilityChanged', (message) => {
+    const handleAvailability = (message) => {
       if (message && message.habitacionId.toString() === habitacionSeleccionada.toString()) {
         const eventDate = new Date(message.fecha);
         const eventMonth = eventDate.getMonth() + 1;
@@ -143,38 +131,29 @@ export default function CalendarioAdmin() {
           cargarDisponibilidad();
         }
       }
-    });
+    };
 
-    connection.on('OnReservaConfirmed', (message) => {
+    const handleReservaConfirmed = (message) => {
       console.log('⚡ SignalR: Reserva confirmada. Recargando...', message);
       cargarDisponibilidad();
-    });
+    };
 
-    connection.on('OnReservaCancelled', (message) => {
+    const handleReservaCancelled = (message) => {
       console.log('⚡ SignalR: Reserva cancelada. Recargando...', message);
       cargarDisponibilidad();
-    });
-
-    // Iniciar conexión
-    connection.start()
-      .then(() => {
-        setSignalrConectado(true);
-        console.log('🔌 Conectado exitosamente a SignalR en api-gateway');
-      })
-      .catch((err) => {
-        setSignalrConectado(false);
-        console.error('❌ Error al conectar a SignalR:', err);
-      });
-
-    // Limpieza
-    return () => {
-      if (connection.state === HubConnectionState.Connected || connection.state === HubConnectionState.Connecting) {
-        connection.stop()
-          .then(() => console.log('🔌 Conexión de SignalR detenida.'))
-          .catch(err => console.error('Error al desconectar SignalR:', err));
-      }
     };
-  }, [habitacionSeleccionada, mes, anio]);
+
+    connection.on('OnAvailabilityChanged', handleAvailability);
+    connection.on('OnReservaConfirmed', handleReservaConfirmed);
+    connection.on('OnReservaCancelled', handleReservaCancelled);
+
+    // Limpieza al desmontar o cambiar de habitación/mes/año
+    return () => {
+      connection.off('OnAvailabilityChanged', handleAvailability);
+      connection.off('OnReservaConfirmed', handleReservaConfirmed);
+      connection.off('OnReservaCancelled', handleReservaCancelled);
+    };
+  }, [connection, habitacionSeleccionada, mes, anio]);
 
   // Manejo de mes anterior/siguiente
   const mesAnterior = () => {
@@ -310,9 +289,9 @@ export default function CalendarioAdmin() {
           <h1 className="admin-page-title">Calendario de Disponibilidad</h1>
           <p className="admin-page-subtitle">Visualiza el estado ocupacional y administra los bloqueos de fechas de tus habitaciones</p>
         </div>
-        <div className={`signalr-indicator ${signalrConectado ? '' : 'offline'}`}>
+        <div className={`signalr-indicator ${isConnected ? '' : 'offline'}`}>
           <span className="signalr-dot"></span>
-          {signalrConectado ? 'Sincronizado en tiempo real' : 'Sin conexión a notificaciones'}
+          {isConnected ? 'Sincronizado en tiempo real' : 'Sin conexión a notificaciones'}
         </div>
       </div>
 

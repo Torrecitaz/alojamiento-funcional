@@ -179,21 +179,21 @@ export default function CheckoutPage() {
               <div className="card-form">
                 <div className="form-group">
                   <label>Número de Tarjeta</label>
-                  <input type="text" className="input-field" placeholder="4242 4242 4242 4242" defaultValue="4242 4242 4242 4242" />
+                  <input type="text" className="input-field" placeholder="4242 4242 4242 4242" required />
                 </div>
                 <div className="form-row">
                   <div className="form-group">
                     <label>Expiración</label>
-                    <input type="text" className="input-field" placeholder="MM/AA" defaultValue="12/28" />
+                    <input type="text" className="input-field" placeholder="MM/AA" required />
                   </div>
                   <div className="form-group">
                     <label>CVV</label>
-                    <input type="text" className="input-field" placeholder="***" defaultValue="123" />
+                    <input type="text" className="input-field" placeholder="***" required />
                   </div>
                 </div>
                 <div className="form-group">
                   <label>Titular</label>
-                  <input type="text" className="input-field" placeholder="Nombre en la tarjeta" defaultValue="Mathias" />
+                  <input type="text" className="input-field" placeholder="Nombre en la tarjeta" required />
                 </div>
               </div>
             )}

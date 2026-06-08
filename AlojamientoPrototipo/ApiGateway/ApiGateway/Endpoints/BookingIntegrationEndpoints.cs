@@ -58,7 +58,18 @@ public static class BookingIntegrationEndpoints
                 }
 
                 var internalRes = await response.Content.ReadFromJsonAsync<ReservaInternalResponse>();
-                return Results.Json(ApiResponse<ReservaInternalResponse>.Ok(internalRes, "Reserva integrada correctamente desde Booking."));
+                if (internalRes != null)
+                {
+                    // Al ser una reserva creada a través del canal externo de Booking, se auto-confirma inmediatamente
+                    var statusReq = new { estado = "Confirmada" };
+                    var patchResponse = await client.PatchAsJsonAsync($"api/v1/Reservas/{internalRes.ReservaId}/estado", statusReq);
+                    if (patchResponse.IsSuccessStatusCode)
+                    {
+                        internalRes = internalRes with { Estado = "Confirmada" };
+                    }
+                }
+                
+                return Results.Json(ApiResponse<ReservaInternalResponse>.Ok(internalRes, "Reserva integrada y confirmada correctamente desde Booking."));
             }
             catch (Exception ex)
             {

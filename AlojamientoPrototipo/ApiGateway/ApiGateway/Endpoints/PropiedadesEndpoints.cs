@@ -34,60 +34,32 @@ public static class PropiedadesEndpoints
             {
                 var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
                 
-                var response = await alojamientosClient.GetAsync("api/v1/Alojamientos");
+                var queryParams = new List<string>
+                {
+                    $"page={page}",
+                    $"pageSize={pageSize}"
+                };
+                if (!string.IsNullOrEmpty(search)) queryParams.Add($"search={Uri.EscapeDataString(search)}");
+                if (!string.IsNullOrEmpty(ciudad)) queryParams.Add($"ciudad={Uri.EscapeDataString(ciudad)}");
+                if (!string.IsNullOrEmpty(tipo)) queryParams.Add($"tipo={Uri.EscapeDataString(tipo)}");
+                if (estrellas.HasValue) queryParams.Add($"estrellas={estrellas.Value}");
+                if (admiteMascotas.HasValue) queryParams.Add($"admiteMascotas={admiteMascotas.Value.ToString().ToLower()}");
+                if (tienePiscina.HasValue) queryParams.Add($"tienePiscina={tienePiscina.Value.ToString().ToLower()}");
+
+                var queryString = string.Join("&", queryParams);
+                var response = await alojamientosClient.GetAsync($"api/v1/Alojamientos/buscar?{queryString}");
                 if (!response.IsSuccessStatusCode)
                 {
                     return Results.Json(ApiResponse<List<AlojamientoDto>>.Fail($"Error al obtener alojamientos: {response.ReasonPhrase}"), statusCode: (int)response.StatusCode);
                 }
                 
-                var rawList = await response.Content.ReadFromJsonAsync<List<AlojamientoInternalResponse>>();
-                if (rawList == null)
+                var pagedResult = await response.Content.ReadFromJsonAsync<AlojamientoPagedInternalResponse>();
+                if (pagedResult == null || pagedResult.Items == null)
                 {
                     return Results.Ok(ApiResponse<List<AlojamientoDto>>.Ok(new()));
                 }
                 
-                var filteredList = rawList.AsEnumerable();
-                
-                if (!string.IsNullOrEmpty(search))
-                {
-                    filteredList = filteredList.Where(a => 
-                        a.Nombre.Contains(search, StringComparison.OrdinalIgnoreCase) || 
-                        (a.Descripcion != null && a.Descripcion.Contains(search, StringComparison.OrdinalIgnoreCase)));
-                }
-                
-                if (!string.IsNullOrEmpty(ciudad))
-                {
-                    filteredList = filteredList.Where(a => 
-                        a.Ciudad != null && a.Ciudad.Contains(ciudad, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (!string.IsNullOrEmpty(tipo))
-                {
-                    filteredList = filteredList.Where(a => 
-                        a.TipoAlojamientoNombre.Equals(tipo, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (estrellas.HasValue)
-                {
-                    filteredList = filteredList.Where(a => a.Estrellas >= estrellas.Value);
-                }
-                
-                if (admiteMascotas.HasValue)
-                {
-                    filteredList = filteredList.Where(a => a.AdmiteMascotas == admiteMascotas.Value);
-                }
-                
-                if (tienePiscina.HasValue)
-                {
-                    filteredList = filteredList.Where(a => a.TienePiscina == tienePiscina.Value);
-                }
-                
-                var listToPaginate = filteredList.ToList();
-                
-                var paginatedList = listToPaginate
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList();
+                var paginatedList = pagedResult.Items;
                     
                 var tasks = paginatedList.Select(async item =>
                 {
@@ -319,59 +291,33 @@ public static class PropiedadesEndpoints
             try
             {
                 var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
-                var response = await alojamientosClient.GetAsync("api/v1/Alojamientos");
+                
+                var queryParams = new List<string>
+                {
+                    $"page={page}",
+                    $"pageSize={pageSize}"
+                };
+                if (!string.IsNullOrEmpty(search)) queryParams.Add($"search={Uri.EscapeDataString(search)}");
+                if (!string.IsNullOrEmpty(ciudad)) queryParams.Add($"ciudad={Uri.EscapeDataString(ciudad)}");
+                if (!string.IsNullOrEmpty(tipo)) queryParams.Add($"tipo={Uri.EscapeDataString(tipo)}");
+                if (estrellas.HasValue) queryParams.Add($"estrellas={estrellas.Value}");
+                if (admiteMascotas.HasValue) queryParams.Add($"admiteMascotas={admiteMascotas.Value.ToString().ToLower()}");
+                if (tienePiscina.HasValue) queryParams.Add($"tienePiscina={tienePiscina.Value.ToString().ToLower()}");
+
+                var queryString = string.Join("&", queryParams);
+                var response = await alojamientosClient.GetAsync($"api/v1/Alojamientos/buscar?{queryString}");
                 if (!response.IsSuccessStatusCode)
                 {
                     return Results.Json(ApiResponse<object>.Fail($"Error al obtener alojamientos: {response.ReasonPhrase}"), statusCode: (int)response.StatusCode);
                 }
                 
-                var rawList = await response.Content.ReadFromJsonAsync<List<AlojamientoInternalResponse>>();
-                if (rawList == null)
+                var pagedResult = await response.Content.ReadFromJsonAsync<AlojamientoPagedInternalResponse>();
+                if (pagedResult == null || pagedResult.Items == null)
                 {
                     return Results.Ok(ApiResponse<object>.Ok(new { items = new List<AlojamientoDto>(), totalRecords = 0 }));
                 }
                 
-                var filteredList = rawList.Where(a => a.Estado != "Inactivo" && a.Estado != "Inactiva");
-                
-                if (!string.IsNullOrEmpty(search))
-                {
-                    filteredList = filteredList.Where(a => 
-                        a.Nombre.Contains(search, StringComparison.OrdinalIgnoreCase) || 
-                        (a.Descripcion != null && a.Descripcion.Contains(search, StringComparison.OrdinalIgnoreCase)));
-                }
-                
-                if (!string.IsNullOrEmpty(ciudad))
-                {
-                    filteredList = filteredList.Where(a => 
-                        a.Ciudad != null && a.Ciudad.Contains(ciudad, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (!string.IsNullOrEmpty(tipo))
-                {
-                    filteredList = filteredList.Where(a => 
-                        a.TipoAlojamientoNombre.Equals(tipo, StringComparison.OrdinalIgnoreCase));
-                }
-                
-                if (estrellas.HasValue)
-                {
-                    filteredList = filteredList.Where(a => a.Estrellas >= estrellas.Value);
-                }
-                
-                if (admiteMascotas.HasValue)
-                {
-                    filteredList = filteredList.Where(a => a.AdmiteMascotas == admiteMascotas.Value);
-                }
-                
-                if (tienePiscina.HasValue)
-                {
-                    filteredList = filteredList.Where(a => a.TienePiscina == tienePiscina.Value);
-                }
-                
-                var listToPaginate = filteredList.ToList();
-                var paginatedList = listToPaginate
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
-                    .ToList();
+                var paginatedList = pagedResult.Items;
                     
                 var tasks = paginatedList.Select(async item =>
                 {
@@ -426,7 +372,7 @@ public static class PropiedadesEndpoints
                 return Results.Ok(ApiResponse<object>.Ok(new
                 {
                     items = resultList,
-                    totalRecords = listToPaginate.Count
+                    totalRecords = pagedResult.TotalRecords
                 }));
             }
             catch (Exception ex)
@@ -656,6 +602,103 @@ public static class PropiedadesEndpoints
             }
         });
 
+        app.MapPost("/api/v1/propiedades/duplicar/{id:int}", async (
+            int id,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                var client = httpClientFactory.CreateClient("Alojamientos");
+                
+                // 1. Obtener alojamiento original
+                var getRes = await client.GetAsync($"api/v1/Alojamientos/{id}");
+                if (!getRes.IsSuccessStatusCode)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("Alojamiento original no encontrado."), statusCode: 404);
+                }
+                
+                var existing = await getRes.Content.ReadFromJsonAsync<AlojamientoInternalResponse>();
+                if (existing == null)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("No se pudo deserializar el alojamiento original."), statusCode: 404);
+                }
+                
+                // 2. Crear payload de copia
+                var backReq = new
+                {
+                    socioId = existing.SocioId,
+                    tipoAlojamientoId = existing.TipoAlojamientoId,
+                    nombre = existing.Nombre + " - Copia",
+                    ciudad = existing.Ciudad,
+                    direccion = existing.Direccion,
+                    descripcion = existing.Descripcion,
+                    admiteMascotas = existing.AdmiteMascotas,
+                    tienePiscina = existing.TienePiscina,
+                    tieneParqueadero = existing.TieneParqueadero,
+                    provincia = existing.Provincia ?? "Pichincha",
+                    pais = existing.Pais ?? "Ecuador",
+                    politicas = existing.Politicas,
+                    checkInTime = existing.CheckInTime ?? "14:00",
+                    checkOutTime = existing.CheckOutTime ?? "11:00",
+                    servicios = existing.Servicios,
+                    latitud = existing.Latitud,
+                    longitud = existing.Longitud,
+                    estado = "Pendiente"
+                };
+                
+                // 3. Crear nuevo alojamiento
+                var createRes = await client.PostAsJsonAsync("api/v1/Alojamientos", backReq);
+                if (!createRes.IsSuccessStatusCode)
+                {
+                    var err = await createRes.Content.ReadAsStringAsync();
+                    return Results.Json(ApiResponse<object>.Fail($"Error al duplicar alojamiento: {err}"), statusCode: (int)createRes.StatusCode);
+                }
+                
+                var newAlojamiento = await createRes.Content.ReadFromJsonAsync<AlojamientoInternalResponse>();
+                if (newAlojamiento == null)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("Error al leer alojamiento duplicado."), statusCode: 500);
+                }
+                
+                // 4. Obtener habitaciones originales
+                var roomsRes = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{id}");
+                if (roomsRes.IsSuccessStatusCode)
+                {
+                    var rooms = await roomsRes.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+                    if (rooms != null)
+                    {
+                        foreach (var room in rooms)
+                        {
+                            var newRoomReq = new
+                            {
+                                alojamientoId = newAlojamiento.AlojamientoId,
+                                nombre = room.Nombre,
+                                descripcion = room.Descripcion,
+                                capacidadAdultos = room.CapacidadAdultos,
+                                capacidadNinos = room.CapacidadNinos,
+                                numBanos = room.NumBanos,
+                                numDormitorios = room.NumDormitorios,
+                                tieneCocina = room.TieneCocina,
+                                tieneAireAcondicionado = room.TieneAireAcondicionado,
+                                superficieM2 = room.SuperficieM2,
+                                precioNoche = room.PrecioNoche,
+                                estado = room.Estado,
+                                fotos = room.Fotos
+                            };
+                            
+                            await client.PostAsJsonAsync("api/v1/Habitaciones", newRoomReq);
+                        }
+                    }
+                }
+                
+                return Results.Json(ApiResponse<AlojamientoInternalResponse>.Ok(newAlojamiento, "Alojamiento y habitaciones duplicados con éxito."));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        });
+
         app.MapPatch("/api/v1/propiedades/{id:int}/estado", async (
             int id,
             JsonElement payload,
@@ -717,6 +760,61 @@ public static class PropiedadesEndpoints
                 }
 
                 return Results.Ok(ApiResponse<object>.Ok(null, "Estado actualizado con éxito."));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        });
+
+        app.MapPost("/api/v1/propiedades/{id:int}/fotos", async (
+            int id,
+            HttpRequest request,
+            Shared.Kernel.Services.ICloudinaryService cloudinaryService,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                if (!request.HasFormContentType)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("Petición inválida: Tipo de contenido debe ser multipart/form-data."), statusCode: 400);
+                }
+
+                var form = await request.ReadFormAsync();
+                var file = form.Files.GetFile("file");
+                if (file == null || file.Length == 0)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("No se encontró ningún archivo en la petición."), statusCode: 400);
+                }
+
+                // 1. Subir la imagen a Cloudinary
+                using var stream = file.OpenReadStream();
+                var imageUrl = await cloudinaryService.UploadImageAsync(file.FileName, stream);
+
+                if (string.IsNullOrEmpty(imageUrl))
+                {
+                    return Results.Json(ApiResponse<object>.Fail("Error al procesar la imagen en el servidor de almacenamiento."), statusCode: 500);
+                }
+
+                // 2. Registrar la foto en el microservicio de Alojamientos
+                var client = httpClientFactory.CreateClient("Alojamientos");
+                var backReq = new
+                {
+                    alojamientoId = id,
+                    url = imageUrl,
+                    orden = 0,
+                    descripcion = file.FileName
+                };
+
+                var response = await client.PostAsJsonAsync("api/v1/Fotos", backReq);
+                if (!response.IsSuccessStatusCode)
+                {
+                    var err = await response.Content.ReadAsStringAsync();
+                    return Results.Json(ApiResponse<object>.Fail($"Error al registrar foto en Alojamientos: {err}"), statusCode: (int)response.StatusCode);
+                }
+
+                var photoResult = await response.Content.ReadFromJsonAsync<JsonElement>();
+                return Results.Json(ApiResponse<JsonElement>.Ok(photoResult, "Foto subida y asociada correctamente."));
             }
             catch (Exception ex)
             {

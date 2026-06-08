@@ -2,10 +2,6 @@
   <Folder Name="/ApiGateway/">
     <Project Path="ApiGateway/ApiGateway/ApiGateway.csproj" />
   </Folder>
-  <Folder Name="/EventBus/">
-    <Project Path="EventBus/EventBus.Contracts/EventBus.Contracts.csproj" />
-    <Project Path="EventBus/EventBus.RabbitMQ/EventBus.RabbitMQ.csproj" />
-  </Folder>
   <Folder Name="/Microservices/" />
   <Folder Name="/Microservices/Alojamientos/">
     <Project Path="Microservices/Alojamientos/Alojamientos.API/Alojamientos.API.csproj" />
@@ -33,5 +29,6 @@
   </Folder>
   <Folder Name="/Shared/">
     <Project Path="Shared/Shared.Kernel/Shared.Kernel.csproj" />
+    <Project Path="Shared/Shared.Protos/Shared.Protos.csproj" />
   </Folder>
 </Solution>

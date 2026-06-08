@@ -4,6 +4,7 @@ using System.Security.Claims;
 using System.Text;
 using System.Threading.Tasks;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Extensions.Configuration;
 using Usuarios.Business.DTOs.Auth;
 using Usuarios.Business.Interfaces;
 using Usuarios.DataManagement.Interfaces;
@@ -14,24 +15,27 @@ public class AuthService : IAuthService
 {
     private readonly IUsuariosDataService _usuarioData;
     private readonly IClientesDataService _clienteData;
+    private readonly IConfiguration _configuration;
 
-    public AuthService(IUsuariosDataService usuarioData, IClientesDataService clienteData)
+    public AuthService(IUsuariosDataService usuarioData, IClientesDataService clienteData, IConfiguration configuration)
     {
         _usuarioData = usuarioData;
         _clienteData = clienteData;
+        _configuration = configuration;
     }
 
     public async Task<LoginResponse?> LoginAsync(LoginRequest request)
     {
         var user = await _usuarioData.GetByEmailAsync(request.Email);
-        if (user == null || user.PasswordHash != request.Password)
+        if (user == null || !BCrypt.Net.BCrypt.Verify(request.Password, user.PasswordHash))
         {
             return null;
         }
 
         // Generar JWT
         var tokenHandler = new JwtSecurityTokenHandler();
-        var key = Encoding.ASCII.GetBytes("SuperSecretKeyOfAtLeast32CharactersLong!!!");
+        var secretKey = _configuration["Jwt:Secret"] ?? "SuperSecretKeyOfAtLeast32CharactersLong!!!";
+        var key = Encoding.ASCII.GetBytes(secretKey);
         var tokenDescriptor = new SecurityTokenDescriptor
         {
             Subject = new ClaimsIdentity(new[]

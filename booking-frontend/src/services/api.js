@@ -1,7 +1,7 @@
 import axios from 'axios';
 
-// Usamos ruta relativa para que funcione tanto en local como en Render automáticamente
-const API_BASE = '/api/v1';
+// Usamos variable de entorno si está configurada, de lo contrario ruta relativa
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '/api/v1';
 
 const api = axios.create({
   baseURL: API_BASE,

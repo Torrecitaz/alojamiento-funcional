@@ -42,7 +42,7 @@ public class ClientesService : IClientesService
 
     public async Task RegistrarClienteAsync(RegistrarClienteRequest request)
     {
-        var cedula = request.Cedula;
+        string cedula = request.Cedula ?? string.Empty;
         if (string.IsNullOrWhiteSpace(cedula))
         {
             var random = new Random();
@@ -61,8 +61,10 @@ public class ClientesService : IClientesService
         var telefono = request.Telefono ?? "0000000000";
         var domicilio = request.Domicilio ?? "No especificado";
 
+        var hashedPassword = BCrypt.Net.BCrypt.HashPassword(request.Password);
+
         await _clienteData.RegistrarClienteAsync(
-            request.Email, request.Password, request.NombreCompleto,
+            request.Email, hashedPassword, request.NombreCompleto,
             cedula, telefono, domicilio);
     }
 

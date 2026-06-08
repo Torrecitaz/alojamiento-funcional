@@ -9,6 +9,15 @@ public interface IAlojamientosDataService
     Task<AlojamientoDataModel> CreateAsync(AlojamientoDataModel model);
     Task UpdateAsync(AlojamientoDataModel model);
     Task DeleteAsync(int id);
+    Task<(IEnumerable<AlojamientoDataModel> Items, int TotalRecords)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? ciudad = null,
+        string? tipo = null,
+        int? estrellas = null,
+        bool? admiteMascotas = null,
+        bool? tienePiscina = null);
 }
 
 public interface IHabitacionesDataService

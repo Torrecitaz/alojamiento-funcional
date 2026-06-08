@@ -31,6 +31,11 @@ public record AlojamientoInternalResponse(
     double? Longitud = null
 );
 
+public record AlojamientoPagedInternalResponse(
+    List<AlojamientoInternalResponse> Items,
+    int TotalRecords
+);
+
 public record HabitacionInternalResponse(
     int HabitacionId,
     int AlojamientoId,

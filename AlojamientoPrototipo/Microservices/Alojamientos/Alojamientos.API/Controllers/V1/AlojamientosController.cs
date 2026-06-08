@@ -26,6 +26,21 @@ public class AlojamientosController : ControllerBase
     public async Task<IActionResult> GetAll()
         => Ok(await _service.GetAllAsync());
 
+    [HttpGet("buscar")]
+    public async Task<IActionResult> Buscar(
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 20,
+        [FromQuery] string? search = null,
+        [FromQuery] string? ciudad = null,
+        [FromQuery] string? tipo = null,
+        [FromQuery] int? estrellas = null,
+        [FromQuery] bool? admiteMascotas = null,
+        [FromQuery] bool? tienePiscina = null)
+    {
+        var (items, totalRecords) = await _service.GetPagedAsync(page, pageSize, search, ciudad, tipo, estrellas, admiteMascotas, tienePiscina);
+        return Ok(new AlojamientoPagedResponse(items, totalRecords));
+    }
+
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(int id)
     {

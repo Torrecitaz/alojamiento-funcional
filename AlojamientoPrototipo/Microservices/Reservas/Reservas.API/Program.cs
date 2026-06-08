@@ -38,6 +38,14 @@ builder.Services.AddMassTransit(x =>
             });
         }
 
+        // Configurar política de reintentos exponencial para el procesamiento de FacturaPagadaEvent
+        cfg.UseMessageRetry(r => r.Exponential(
+            5,
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(30),
+            TimeSpan.FromSeconds(5)
+        ));
+
         cfg.ConfigureEndpoints(context);
     });
 });
@@ -50,6 +58,7 @@ builder.Services.Configure<MassTransitHostOptions>(options =>
 
 // ── 3. Presentación (Controllers) ────────────────────
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
 
 // ── 4. Infraestructura Web (Swagger & CORS) ──────────
 builder.Services.AddEndpointsApiExplorer();
@@ -62,6 +71,9 @@ var app = builder.Build();
 
 // Manejo Global de Excepciones
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Health Checks
+app.MapHealthChecks("/health");
 
 // Swagger
 app.UseSwagger();

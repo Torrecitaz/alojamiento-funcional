@@ -4,6 +4,15 @@ namespace Alojamientos.DataAccess.Repositories.Interfaces;
 
 public interface IAlojamientosRepository : IRepositoryBase<AlojamientoEntity>
 {
+    Task<(IEnumerable<AlojamientoEntity> Items, int TotalRecords)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? ciudad = null,
+        string? tipo = null,
+        int? estrellas = null,
+        bool? admiteMascotas = null,
+        bool? tienePiscina = null);
 }
 
 public interface IHabitacionesRepository : IRepositoryBase<HabitacionEntity>

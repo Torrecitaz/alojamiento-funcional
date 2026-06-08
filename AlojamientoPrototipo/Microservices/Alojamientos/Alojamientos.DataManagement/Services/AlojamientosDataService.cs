@@ -18,6 +18,20 @@ public class AlojamientosDataService : IAlojamientosDataService
         return entities.Select(AlojamientosMapper.ToDataModel);
     }
 
+    public async Task<(IEnumerable<AlojamientoDataModel> Items, int TotalRecords)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? ciudad = null,
+        string? tipo = null,
+        int? estrellas = null,
+        bool? admiteMascotas = null,
+        bool? tienePiscina = null)
+    {
+        var (entities, totalRecords) = await _repo.GetPagedAsync(page, pageSize, search, ciudad, tipo, estrellas, admiteMascotas, tienePiscina);
+        return (entities.Select(AlojamientosMapper.ToDataModel), totalRecords);
+    }
+
     public async Task<AlojamientoDataModel?> GetByIdAsync(int id)
     {
         var entity = await _repo.GetByIdAsync(id);

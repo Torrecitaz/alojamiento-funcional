@@ -11,6 +11,15 @@ public interface IAlojamientosService
     Task<AlojamientoResponse> CrearAsync(CrearAlojamientoRequest request);
     Task ActualizarAsync(int id, ActualizarAlojamientoRequest request);
     Task EliminarAsync(int id);
+    Task<(IEnumerable<AlojamientoResponse> Items, int TotalRecords)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? ciudad = null,
+        string? tipo = null,
+        int? estrellas = null,
+        bool? admiteMascotas = null,
+        bool? tienePiscina = null);
 }
 
 public interface IHabitacionesService

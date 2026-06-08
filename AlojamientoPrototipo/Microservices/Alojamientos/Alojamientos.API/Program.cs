@@ -34,6 +34,15 @@ builder.Services.AddMassTransit(x =>
                 h.Password("guest");
             });
         }
+        
+        // Configurar política de reintentos exponencial
+        cfg.UseMessageRetry(r => r.Exponential(
+            5,
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(30),
+            TimeSpan.FromSeconds(5)
+        ));
+        
         cfg.ConfigureEndpoints(context);
     });
 });
@@ -47,6 +56,7 @@ builder.Services.Configure<MassTransitHostOptions>(options =>
 // ── 3. Presentación (Controllers & gRPC) ───────────────
 builder.Services.AddControllers();
 builder.Services.AddGrpc();
+builder.Services.AddHealthChecks();
 
 // ── 4. Infraestructura Web (Swagger & CORS) ──────────
 builder.Services.AddEndpointsApiExplorer();
@@ -59,6 +69,9 @@ var app = builder.Build();
 
 // Manejo Global de Excepciones
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Health Checks
+app.MapHealthChecks("/health");
 
 // Swagger (siempre activo para el prototipo)
 app.UseSwagger();

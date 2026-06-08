@@ -16,6 +16,7 @@ export default function AdminHabitaciones() {
   const [loading, setLoading] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -26,6 +27,7 @@ export default function AdminHabitaciones() {
     numBanos: 1,
     numDormitorios: 1,
     superficieM2: '',
+    precioNoche: 100,
     admiteMascotas: false,
     tieneCocina: false,
     tieneAireAcondicionado: true
@@ -91,23 +93,49 @@ export default function AdminHabitaciones() {
         capacidadNinos: parseInt(formData.capacidadNinos),
         numBanos: parseInt(formData.numBanos),
         numDormitorios: parseInt(formData.numDormitorios),
-        superficieM2: formData.superficieM2 ? parseInt(formData.superficieM2) : null
+        superficieM2: formData.superficieM2 ? parseFloat(formData.superficieM2) : null,
+        precioNoche: parseFloat(formData.precioNoche)
       };
 
-      await api.post('/habitaciones', payload);
-      toast.success('Habitación agregada exitosamente.');
+      if (editingId) {
+        await api.put(`/habitaciones/${editingId}`, payload);
+        toast.success('Habitación actualizada exitosamente.');
+      } else {
+        await api.post('/habitaciones', payload);
+        toast.success('Habitación agregada exitosamente.');
+      }
+      
       setShowForm(false);
+      setEditingId(null);
       setFormData({
         nombre: '', descripcion: '', capacidadAdultos: 2, capacidadNinos: 0,
-        numBanos: 1, numDormitorios: 1, superficieM2: '',
+        numBanos: 1, numDormitorios: 1, superficieM2: '', precioNoche: 100,
         admiteMascotas: false, tieneCocina: false, tieneAireAcondicionado: true
       });
       buscarHabitaciones();
     } catch (err) {
-      toast.error(err.response?.data?.mensaje || 'Error al agregar la habitación.');
+      toast.error(err.response?.data?.mensaje || `Error al ${editingId ? 'actualizar' : 'agregar'} la habitación.`);
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleEditClick = (h) => {
+    setFormData({
+      nombre: h.nombre,
+      descripcion: h.descripcion || '',
+      capacidadAdultos: h.capacidadAdultos,
+      capacidadNinos: h.capacidadNinos,
+      numBanos: h.numBanos,
+      numDormitorios: h.numDormitorios,
+      superficieM2: h.superficieM2 || '',
+      precioNoche: h.precioNoche || 0,
+      admiteMascotas: h.admiteMascotas || false,
+      tieneCocina: h.tieneCocina || false,
+      tieneAireAcondicionado: h.tieneAireAcondicionado || false
+    });
+    setEditingId(h.habitacionId);
+    setShowForm(true);
   };
 
   const eliminarHabitacion = async (id) => {
@@ -148,7 +176,20 @@ export default function AdminHabitaciones() {
           </select>
         </div>
         {propiedadSeleccionada && (
-          <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+          <button 
+            className="btn btn-primary" 
+            onClick={() => {
+              if (showForm) {
+                setEditingId(null);
+                setFormData({
+                  nombre: '', descripcion: '', capacidadAdultos: 2, capacidadNinos: 0,
+                  numBanos: 1, numDormitorios: 1, superficieM2: '', precioNoche: 100,
+                  admiteMascotas: false, tieneCocina: false, tieneAireAcondicionado: true
+                });
+              }
+              setShowForm(!showForm);
+            }}
+          >
             <HiOutlinePlus size={18} /> {showForm ? 'Ocultar Formulario' : 'Nueva Habitación'}
           </button>
         )}
@@ -157,9 +198,9 @@ export default function AdminHabitaciones() {
       {/* Formulario */}
       {showForm && propiedadSeleccionada && (
         <div className="card" style={{ padding: 24, marginBottom: 24, border: '1px solid var(--color-border)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: 20 }}>Registrar Nueva Habitación</h3>
+          <h3 style={{ marginTop: 0, marginBottom: 20 }}>{editingId ? 'Editar Habitación' : 'Registrar Nueva Habitación'}</h3>
           <form onSubmit={handleSubmit}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
                 <label className="form-label">Nombre / Etiqueta</label>
                 <input required type="text" className="input-field" name="nombre" value={formData.nombre} onChange={handleInputChange} placeholder="Ej. Suite Presidencial, Habitación 101" />
@@ -167,6 +208,10 @@ export default function AdminHabitaciones() {
               <div>
                 <label className="form-label">Superficie (m²)</label>
                 <input type="number" className="input-field" name="superficieM2" value={formData.superficieM2} onChange={handleInputChange} placeholder="Opcional" />
+              </div>
+              <div>
+                <label className="form-label">Precio por Noche (USD)</label>
+                <input required type="number" min="1" step="any" className="input-field" name="precioNoche" value={formData.precioNoche} onChange={handleInputChange} />
               </div>
             </div>
 
@@ -207,9 +252,23 @@ export default function AdminHabitaciones() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button type="button" className="btn btn-outline" onClick={() => setShowForm(false)}>Cancelar</button>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  setFormData({
+                    nombre: '', descripcion: '', capacidadAdultos: 2, capacidadNinos: 0,
+                    numBanos: 1, numDormitorios: 1, superficieM2: '', precioNoche: 100,
+                    admiteMascotas: false, tieneCocina: false, tieneAireAcondicionado: true
+                  });
+                }}
+              >
+                Cancelar
+              </button>
               <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? 'Guardando...' : 'Guardar Habitación'}
+                {submitting ? 'Guardando...' : (editingId ? 'Actualizar Habitación' : 'Guardar Habitación')}
               </button>
             </div>
           </form>
@@ -233,6 +292,7 @@ export default function AdminHabitaciones() {
               <thead>
                 <tr>
                   <th>Nombre</th>
+                  <th>Precio/Noche</th>
                   <th>Capacidad</th>
                   <th>Distribución</th>
                   <th>A/C</th>
@@ -251,19 +311,32 @@ export default function AdminHabitaciones() {
                       </div>
                       {h.superficieM2 && <span style={{ fontSize: '.8rem', color: 'var(--color-text-muted)' }}>{h.superficieM2} m²</span>}
                     </td>
+                    <td>
+                      <strong style={{ color: 'var(--color-text)' }}>${h.precioNoche} USD</strong>
+                    </td>
                     <td>{h.capacidadAdultos} Ad., {h.capacidadNinos} Ni.</td>
                     <td>{h.numDormitorios} Dorm. / {h.numBanos} Baño(s)</td>
                     <td>{h.tieneAireAcondicionado ? '✓' : '—'}</td>
                     <td>{h.tieneCocina ? '✓' : '—'}</td>
                     <td>{h.admiteMascotas ? '✓' : '—'}</td>
                     <td>
-                      <button 
-                        className="admin-btn-delete"
-                        onClick={() => eliminarHabitacion(h.habitacionId)}
-                        title="Eliminar habitación"
-                      >
-                        <HiOutlineTrash size={16} />
-                      </button>
+                      <div style={{ display: 'flex', gap: 8 }}>
+                        <button 
+                          className="admin-btn-edit" 
+                          onClick={() => handleEditClick(h)}
+                          style={{ backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                        >
+                          Editar
+                        </button>
+                        <button 
+                          className="admin-btn-delete"
+                          onClick={() => eliminarHabitacion(h.habitacionId)}
+                          title="Eliminar habitación"
+                          style={{ padding: '6px', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                        >
+                          <HiOutlineTrash size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

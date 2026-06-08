@@ -25,6 +25,20 @@ public class AlojamientosService : IAlojamientosService
         return models.Select(AlojamientosBusinessMapper.ToResponse);
     }
 
+    public async Task<(IEnumerable<AlojamientoResponse> Items, int TotalRecords)> GetPagedAsync(
+        int page,
+        int pageSize,
+        string? search = null,
+        string? ciudad = null,
+        string? tipo = null,
+        int? estrellas = null,
+        bool? admiteMascotas = null,
+        bool? tienePiscina = null)
+    {
+        var (models, totalRecords) = await _dataService.GetPagedAsync(page, pageSize, search, ciudad, tipo, estrellas, admiteMascotas, tienePiscina);
+        return (models.Select(AlojamientosBusinessMapper.ToResponse), totalRecords);
+    }
+
     public async Task<AlojamientoResponse?> GetByIdAsync(int id)
     {
         var model = await _dataService.GetByIdAsync(id);

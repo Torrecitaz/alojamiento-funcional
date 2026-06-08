@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { HiOutlinePlus, HiOutlineOfficeBuilding, HiOutlineLocationMarker } from 'react-icons/hi';
+import { HiOutlinePlus, HiOutlineOfficeBuilding, HiOutlineLocationMarker, HiOutlinePhotograph, HiOutlineX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
 import api from '../../services/api';
 import useAuthStore from '../../store/useAuthStore';
@@ -18,6 +18,12 @@ export default function AdminPropiedades() {
   const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+
+  // Estados de galería de fotos
+  const [activeGaleriaId, setActiveGaleriaId] = useState(null);
+  const [fotosGaleria, setFotosGaleria] = useState([]);
+  const [uploadingFoto, setUploadingFoto] = useState(false);
 
   // Form State
   const [formData, setFormData] = useState({
@@ -80,18 +86,91 @@ export default function AdminPropiedades() {
         colaboradorId: esAdmin ? parseInt(formData.colaboradorId) : user?.colaboradorId
       };
 
-      await api.post('/propiedades', payload);
-      toast.success('Propiedad creada exitosamente.');
+      if (editingId) {
+        await api.put(`/propiedades/${editingId}`, payload);
+        toast.success('Propiedad actualizada exitosamente.');
+      } else {
+        await api.post('/propiedades', payload);
+        toast.success('Propiedad creada exitosamente.');
+      }
+      
       setShowForm(false);
+      setEditingId(null);
       setFormData({
         nombre: '', descripcion: '', direccion: '', ciudadId: '', 
         tipoAlojamientoId: '', estrellas: 3, admiteMascotas: false, colaboradorId: ''
       });
       loadData();
     } catch (err) {
-      toast.error(err.response?.data?.mensaje || 'Error al crear la propiedad.');
+      toast.error(err.response?.data?.mensaje || `Error al ${editingId ? 'actualizar' : 'crear'} la propiedad.`);
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleEditClick = (p) => {
+    const matchedCiudad = ciudades.find(c => c.nombre === p.ciudad);
+    const matchedTipo = tipos.find(t => t.nombre === p.tipoAlojamiento);
+
+    setFormData({
+      nombre: p.nombre,
+      descripcion: p.descripcion || '',
+      direccion: p.direccion,
+      ciudadId: matchedCiudad ? matchedCiudad.ciudadId.toString() : '',
+      tipoAlojamientoId: matchedTipo ? matchedTipo.tipoAlojamientoId.toString() : '',
+      estrellas: p.estrellas,
+      admiteMascotas: p.admiteMascotas || false,
+      colaboradorId: p.colaboradorId || (esAdmin ? '' : (user?.colaboradorId || ''))
+    });
+    setEditingId(p.propiedadId);
+    setShowForm(true);
+  };
+
+  const handleDuplicate = async (id) => {
+    const loadingToast = toast.loading('Duplicando propiedad y habitaciones...');
+    try {
+      await api.post(`/propiedades/duplicar/${id}`);
+      toast.success('Propiedad duplicada exitosamente.', { id: loadingToast });
+      loadData();
+    } catch (err) {
+      toast.error(err.response?.data?.mensaje || 'Error al duplicar la propiedad.', { id: loadingToast });
+    }
+  };
+
+  const loadFotos = async (propiedadId) => {
+    try {
+      const { data } = await api.get(`/propiedades/${propiedadId}`);
+      setFotosGaleria(data.datos?.fotos || []);
+    } catch {
+      toast.error('Error al cargar fotos de la galería.');
+    }
+  };
+
+  const handleOpenGaleria = (propiedadId) => {
+    setActiveGaleriaId(propiedadId);
+    setFotosGaleria([]);
+    loadFotos(propiedadId);
+  };
+
+  const handleUploadFoto = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingFoto(true);
+    const formDataPayload = new FormData();
+    formDataPayload.append('file', file);
+
+    const loadingToast = toast.loading('Subiendo imagen a la galería...');
+    try {
+      await api.post(`/propiedades/${activeGaleriaId}/fotos`, formDataPayload, {
+        headers: { 'Content-Type': 'multipart/form-data' }
+      });
+      toast.success('Imagen subida exitosamente.', { id: loadingToast });
+      loadFotos(activeGaleriaId);
+    } catch (err) {
+      toast.error(err.response?.data?.mensaje || 'Error al subir la imagen.', { id: loadingToast });
+    } finally {
+      setUploadingFoto(false);
     }
   };
 
@@ -113,14 +192,26 @@ export default function AdminPropiedades() {
           <h1 className="admin-page-title">Propiedades</h1>
           <p className="admin-page-subtitle">Gestión del inventario de hoteles y alojamientos</p>
         </div>
-        <button className="btn btn-primary" onClick={() => setShowForm(!showForm)}>
+        <button 
+          className="btn btn-primary" 
+          onClick={() => {
+            if (showForm) {
+              setEditingId(null);
+              setFormData({
+                nombre: '', descripcion: '', direccion: '', ciudadId: '', 
+                tipoAlojamientoId: '', estrellas: 3, admiteMascotas: false, colaboradorId: ''
+              });
+            }
+            setShowForm(!showForm);
+          }}
+        >
           <HiOutlinePlus size={18} /> {showForm ? 'Ocultar Formulario' : 'Nueva Propiedad'}
         </button>
       </div>
 
       {showForm && (
         <div className="card" style={{ padding: 24, marginBottom: 24, border: '1px solid var(--color-border)' }}>
-          <h3 style={{ marginTop: 0, marginBottom: 20 }}>Registrar Nueva Propiedad</h3>
+          <h3 style={{ marginTop: 0, marginBottom: 20 }}>{editingId ? 'Editar Propiedad' : 'Registrar Nueva Propiedad'}</h3>
           <form onSubmit={handleSubmit}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 16 }}>
               <div>
@@ -180,9 +271,22 @@ export default function AdminPropiedades() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12 }}>
-              <button type="button" className="btn btn-outline" onClick={() => setShowForm(false)}>Cancelar</button>
+              <button 
+                type="button" 
+                className="btn btn-outline" 
+                onClick={() => {
+                  setShowForm(false);
+                  setEditingId(null);
+                  setFormData({
+                    nombre: '', descripcion: '', direccion: '', ciudadId: '', 
+                    tipoAlojamientoId: '', estrellas: 3, admiteMascotas: false, colaboradorId: ''
+                  });
+                }}
+              >
+                Cancelar
+              </button>
               <button type="submit" className="btn btn-primary" disabled={submitting}>
-                {submitting ? 'Guardando...' : 'Guardar Propiedad'}
+                {submitting ? 'Guardando...' : (editingId ? 'Actualizar Propiedad' : 'Guardar Propiedad')}
               </button>
             </div>
           </form>
@@ -226,17 +330,41 @@ export default function AdminPropiedades() {
                   </td>
                   <td style={{ color: '#fbbf24' }}>{'★'.repeat(p.estrellas)}</td>
                   <td>
-                    <span className={`badge ${p.estado === 'Activa' ? 'badge-success' : 'badge-danger'}`}>
+                    <span className={`badge ${p.estado === 'Activa' || p.estado === 'Activo' ? 'badge-success' : 'badge-danger'}`}>
                       {p.estado || 'Activa'}
                     </span>
                   </td>
                   <td>
-                    <button 
-                      className="admin-btn-edit"
-                      onClick={() => toggleEstado(p.propiedadId, p.estado || 'Activa')}
-                    >
-                      {p.estado === 'Activa' ? 'Desactivar' : 'Activar'}
-                    </button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button 
+                        className="admin-btn-edit" 
+                        onClick={() => handleEditClick(p)}
+                        style={{ backgroundColor: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                      >
+                        Editar
+                      </button>
+                      <button 
+                        className="admin-btn-edit" 
+                        onClick={() => handleDuplicate(p.propiedadId)}
+                        style={{ backgroundColor: '#10b981', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                      >
+                        Duplicar
+                      </button>
+                      <button 
+                        className="admin-btn-edit" 
+                        onClick={() => handleOpenGaleria(p.propiedadId)}
+                        style={{ backgroundColor: '#f59e0b', color: '#fff', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4 }}
+                      >
+                        <HiOutlinePhotograph size={14} /> Fotos
+                      </button>
+                      <button 
+                        className="admin-btn-edit"
+                        onClick={() => toggleEstado(p.propiedadId, p.estado || 'Activa')}
+                        style={{ padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--color-border)' }}
+                      >
+                        {p.estado === 'Activa' || p.estado === 'Activo' ? 'Desactivar' : 'Activar'}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -244,6 +372,62 @@ export default function AdminPropiedades() {
           </table>
         )}
       </div>
+
+      {/* Modal de Galería de Fotos */}
+      {activeGaleriaId && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 1000, padding: 20
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: 700, maxHeight: '90vh', overflowY: 'auto', padding: 24, position: 'relative' }}>
+            <button 
+              onClick={() => setActiveGaleriaId(null)}
+              style={{ position: 'absolute', top: 16, right: 16, border: 'none', background: 'none', cursor: 'pointer', color: 'var(--color-text-muted)' }}
+            >
+              <HiOutlineX size={24} />
+            </button>
+            <h3 style={{ marginTop: 0, marginBottom: 20 }}>Galería de Fotos (Propiedad #{activeGaleriaId})</h3>
+            
+            {/* Zona de Subida */}
+            <div style={{
+              border: '2px dashed var(--color-border)', borderRadius: 8, padding: 30, textAlign: 'center',
+              background: 'var(--color-bg-alt)', marginBottom: 24, cursor: 'pointer', position: 'relative'
+            }}>
+              <HiOutlinePhotograph size={36} style={{ color: 'var(--color-accent)', marginBottom: 8, opacity: 0.8 }} />
+              <p style={{ margin: 0, fontWeight: 500 }}>Arrastra una imagen aquí o haz clic para subir</p>
+              <p style={{ margin: 0, fontSize: '.8rem', color: 'var(--color-text-muted)', marginTop: 4 }}>Formatos aceptados: PNG, JPG, JPEG</p>
+              <input 
+                type="file" 
+                accept="image/*"
+                onChange={handleUploadFoto}
+                disabled={uploadingFoto}
+                style={{
+                  position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, opacity: 0, cursor: 'pointer'
+                }}
+              />
+            </div>
+
+            {/* Listado de Fotos */}
+            <h4 style={{ marginBottom: 12 }}>Fotos Actuales ({fotosGaleria.length})</h4>
+            {fotosGaleria.length === 0 ? (
+              <p style={{ textAlign: 'center', color: 'var(--color-text-muted)', padding: 20 }}>No hay fotos registradas para este alojamiento.</p>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 12 }}>
+                {fotosGaleria.map((f, i) => (
+                  <div key={i} style={{ borderRadius: 6, overflow: 'hidden', border: '1px solid var(--color-border)', position: 'relative', height: 100 }}>
+                    <img src={f.url} alt={f.descripcion || 'Foto'} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 24 }}>
+              <button className="btn btn-outline" onClick={() => setActiveGaleriaId(null)}>Cerrar</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

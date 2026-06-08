@@ -20,6 +20,7 @@ builder.Services.AddApplicationServices();
 
 // ── 3. Presentación (Controllers) ────────────────────
 builder.Services.AddControllers();
+builder.Services.AddHealthChecks();
 
 // ── 4. Infraestructura Web (Swagger & CORS) ──────────
 builder.Services.AddEndpointsApiExplorer();
@@ -32,6 +33,9 @@ var app = builder.Build();
 
 // Manejo Global de Excepciones
 app.UseMiddleware<ExceptionHandlingMiddleware>();
+
+// Health Checks
+app.MapHealthChecks("/health");
 
 // Swagger (siempre activo para el prototipo)
 app.UseSwagger();

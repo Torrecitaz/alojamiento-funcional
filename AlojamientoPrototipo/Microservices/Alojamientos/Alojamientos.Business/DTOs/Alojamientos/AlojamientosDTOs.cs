@@ -70,3 +70,8 @@ public record AlojamientoResponse(
     double? Latitud = null,
     double? Longitud = null
 );
+
+public record AlojamientoPagedResponse(
+    System.Collections.Generic.IEnumerable<AlojamientoResponse> Items,
+    int TotalRecords
+);

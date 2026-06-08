@@ -36,6 +36,7 @@ SanitizeConfigurationUrl("ReverseProxy:Clusters:facturacion-cluster:Destinations
 
 
 // Add services to the container.
+builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -73,6 +74,7 @@ builder.Services.AddHttpClient("Facturacion", client =>
 });
 
 // Habilitar SignalR y Bus de Eventos con MassTransit
+builder.Services.AddSingleton<Shared.Kernel.Services.ICloudinaryService, Shared.Kernel.Services.CloudinaryService>();
 builder.Services.AddSignalR();
 builder.Services.AddMassTransit(x =>
 {
@@ -103,6 +105,15 @@ builder.Services.AddMassTransit(x =>
                 h.Password("guest");
             });
         }
+        
+        // Configurar política de reintentos exponencial (5 reintentos, mín 2s, máx 30s)
+        cfg.UseMessageRetry(r => r.Exponential(
+            5,
+            TimeSpan.FromSeconds(2),
+            TimeSpan.FromSeconds(30),
+            TimeSpan.FromSeconds(5)
+        ));
+
         cfg.ConfigureEndpoints(context);
     });
 });
@@ -122,15 +133,21 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
     {
-        policy.AllowAnyOrigin()
+        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
+            ?? new[] { "http://localhost:5173", "http://localhost:3000" };
+
+        policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
-              .AllowAnyMethod();
+              .AllowAnyMethod()
+              .AllowCredentials();
     });
 });
 
 var app = builder.Build();
 
 app.UseCors("AllowAll");
+
+app.MapHealthChecks("/health");
 
 app.MapHub<BookingHub>("/bookingHub");
 
