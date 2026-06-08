@@ -146,6 +146,7 @@ services:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__ConexionReservas: "Host=postgres_reservas;Port=5432;Database=db_reservas;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-password};"
       ConnectionStrings__RabbitMQ: "amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/"
+      GrpcUrls__Alojamientos: "http://alojamientos-api:8080"
 
   usuarios-api:
     build:

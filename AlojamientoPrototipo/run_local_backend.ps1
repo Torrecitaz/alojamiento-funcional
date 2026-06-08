@@ -8,6 +8,7 @@ ${env:ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Addr
 ${env:ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address}="http://localhost:5002"
 ${env:ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address}="http://localhost:5003"
 ${env:ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address}="http://localhost:5004"
+$env:GrpcUrls__Alojamientos="http://localhost:5002"
 
 # Crear directorio de logs
 New-Item -ItemType Directory -Force -Path "logs" | Out-Null
