@@ -44,7 +44,7 @@ builder.Services.AddMassTransit(x =>
 builder.Services.Configure<MassTransitHostOptions>(options =>
 {
     options.WaitUntilStarted = false;
-    options.StartTimeout = TimeSpan.FromSeconds(5);
+    options.StartTimeout = TimeSpan.FromSeconds(30);
 });
 
 // ── 3. Presentación (Controllers) ────────────────────
