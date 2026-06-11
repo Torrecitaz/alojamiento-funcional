@@ -9,6 +9,11 @@ ${env:ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__
 ${env:ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address}="http://localhost:5003"
 ${env:ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address}="http://localhost:5004"
 $env:GrpcUrls__Alojamientos="http://localhost:5002"
+$env:ConnectionStrings__RabbitMQ="amqps://rtiqdlfy:u7i-CTdpjA4fvRvRAPsLD1Kxu6W-qfo0@leopard.lmq.cloudamqp.com/rtiqdlfy"
+$env:BookingIntegration__BookingApiUrl="http://localhost:5005"
+$env:Microservices__BookingIntegrationUrl="http://localhost:5005"
+$env:ConnectionStrings__ConexionBooking="Host=localhost;Port=5436;Database=db_booking;Username=postgres;Password=password;"
+
 
 # Crear directorio de logs
 New-Item -ItemType Directory -Force -Path "logs" | Out-Null
@@ -24,6 +29,9 @@ Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/
 
 Write-Host "Iniciando Facturacion.API..."
 Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/Facturacion.API.dll --urls http://localhost:5004" -WorkingDirectory "Microservices/Facturacion/Facturacion.API" -NoNewWindow -RedirectStandardOutput "../../../logs/facturacion.log" -RedirectStandardError "../../../logs/facturacion_error.log"
+
+Write-Host "Iniciando BookingIntegration.API..."
+Start-Process dotnet -ArgumentList "--roll-forward LatestMajor bin/Debug/net8.0/BookingIntegration.API.dll --urls http://localhost:5005" -WorkingDirectory "Microservices/BookingIntegration/BookingIntegration.API" -NoNewWindow -RedirectStandardOutput "../../../logs/booking_integration.log" -RedirectStandardError "../../../logs/booking_integration_error.log"
 
 Write-Host "Esperando 5 segundos para que los microservicios se inicien..."
 Start-Sleep -Seconds 5

@@ -11,7 +11,6 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using ApiGateway.Models;
-using ApiGateway.Models.Internal;
 
 namespace ApiGateway.Endpoints;
 
@@ -19,230 +18,87 @@ public static class BookingIntegrationEndpoints
 {
     public static void MapBookingIntegrationEndpoints(this IEndpointRouteBuilder app)
     {
-        // Reservation Created Webhook
+        // Helper to forward requests to BookingIntegration.API
+        async Task<IResult> ForwardToSyncApi(HttpRequest request, IHttpClientFactory httpClientFactory, IConfiguration config, string subPath)
+        {
+            if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
+            {
+                return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
+            }
+
+            request.EnableBuffering();
+            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
+            var bodyText = await reader.ReadToEndAsync();
+            request.Body.Position = 0;
+
+            if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
+            {
+                return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
+            }
+
+            try
+            {
+                var client = httpClientFactory.CreateClient("BookingIntegration");
+                var response = await client.PostAsync($"api/sync/webhook/{subPath}", new StringContent(bodyText, Encoding.UTF8, "application/json"));
+                
+                var responseContent = await response.Content.ReadAsStringAsync();
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Results.Json(ApiResponse<object>.Fail($"Error en servicio de integración: {responseContent}"), statusCode: (int)response.StatusCode);
+                }
+
+                var jsonResponse = JsonSerializer.Deserialize<JsonElement>(responseContent);
+                return Results.Json(ApiResponse<JsonElement>.Ok(jsonResponse, "Webhook procesado exitosamente por el servicio de integración."));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<object>.Fail($"Error interno de Gateway al redirigir: {ex.Message}"), statusCode: 500);
+            }
+        }
+
+        // 1. Reservation Created Webhook
         app.MapPost("/api/integrations/booking/reservation-created", async (
             HttpRequest request,
             IHttpClientFactory httpClientFactory,
             IConfiguration config) =>
         {
-            if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
-            }
-
-            request.EnableBuffering();
-            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-            var bodyText = await reader.ReadToEndAsync();
-            request.Body.Position = 0;
-
-            if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
-            }
-
-            try
-            {
-                var bookingReq = JsonSerializer.Deserialize<CrearReservaRequest>(bodyText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (bookingReq == null)
-                {
-                    return Results.Json(ApiResponse<object>.Fail("Payload de reserva inválido."), statusCode: 400);
-                }
-
-                var client = httpClientFactory.CreateClient("Reservas");
-                var response = await client.PostAsJsonAsync("api/v1/Reservas", bookingReq);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    var error = await response.Content.ReadAsStringAsync();
-                    return Results.Json(ApiResponse<object>.Fail($"Error al registrar reserva en Reservas: {error}"), statusCode: (int)response.StatusCode);
-                }
-
-                var internalRes = await response.Content.ReadFromJsonAsync<ReservaInternalResponse>();
-                if (internalRes != null)
-                {
-                    // Al ser una reserva creada a través del canal externo de Booking, se auto-confirma inmediatamente
-                    var statusReq = new { estado = "Confirmada" };
-                    var patchResponse = await client.PatchAsJsonAsync($"api/v1/Reservas/{internalRes.ReservaId}/estado", statusReq);
-                    if (patchResponse.IsSuccessStatusCode)
-                    {
-                        internalRes = internalRes with { Estado = "Confirmada" };
-                    }
-                }
-                
-                return Results.Json(ApiResponse<ReservaInternalResponse>.Ok(internalRes, "Reserva integrada y confirmada correctamente desde Booking."));
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
-            }
+            return await ForwardToSyncApi(request, httpClientFactory, config, "reservation-created");
         })
         .WithName("BookingIntegrationReservationCreated")
         .WithTags("Integraciones")
         .WithOpenApi();
 
-        // Reservation Cancelled Webhook (INVERTED ORDER: state update first, release dates second)
+        // 2. Reservation Cancelled Webhook
         app.MapPost("/api/integrations/booking/reservation-cancelled", async (
             HttpRequest request,
             IHttpClientFactory httpClientFactory,
             IConfiguration config) =>
         {
-            if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
-            }
-
-            request.EnableBuffering();
-            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-            var bodyText = await reader.ReadToEndAsync();
-            request.Body.Position = 0;
-
-            if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
-            }
-
-            try
-            {
-                var cancelPayload = JsonSerializer.Deserialize<CancelWebhookPayload>(bodyText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (cancelPayload == null || string.IsNullOrEmpty(cancelPayload.CodigoReserva))
-                {
-                    return Results.Json(ApiResponse<object>.Fail("Código de reserva requerido."), statusCode: 400);
-                }
-
-                var client = httpClientFactory.CreateClient("Reservas");
-                var resResponse = await client.GetAsync($"api/v1/Reservas/codigo/{cancelPayload.CodigoReserva}");
-                if (!resResponse.IsSuccessStatusCode)
-                {
-                    return Results.Json(ApiResponse<object>.Fail("Reserva no encontrada en Reservas."), statusCode: 404);
-                }
-
-                var reservation = await resResponse.Content.ReadFromJsonAsync<ReservaInternalResponse>();
-                if (reservation == null)
-                {
-                    return Results.Json(ApiResponse<object>.Fail("Reserva no encontrada."), statusCode: 404);
-                }
-
-                // 1. Cancelar en Reservas primero
-                var statusReq = new { estado = "Cancelada" };
-                var patchResponse = await client.PatchAsJsonAsync($"api/v1/Reservas/{reservation.ReservaId}/estado", statusReq);
-                if (!patchResponse.IsSuccessStatusCode)
-                {
-                    var err = await patchResponse.Content.ReadAsStringAsync();
-                    return Results.Json(ApiResponse<object>.Fail($"Error al actualizar estado en Reservas: {err}"), statusCode: (int)patchResponse.StatusCode);
-                }
-
-                // 2. Si es exitoso, liberar el calendario en Alojamientos
-                var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
-                var fechaFinExclusiva = reservation.FechaCheckOut.AddDays(-1);
-                foreach (var det in reservation.DetallesHabitacion)
-                {
-                    var releaseReq = new
-                    {
-                        habitacionId = det.HabitacionId,
-                        fechaInicio = reservation.FechaCheckIn,
-                        fechaFin = fechaFinExclusiva
-                    };
-                    await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", releaseReq);
-                }
-
-                return Results.Ok(ApiResponse<object>.Ok(null, "Reserva cancelada correctamente desde Booking."));
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
-            }
+            return await ForwardToSyncApi(request, httpClientFactory, config, "reservation-cancelled");
         })
         .WithName("BookingIntegrationReservationCancelled")
         .WithTags("Integraciones")
         .WithOpenApi();
 
-        // Property Created Webhook
+        // 3. Property Created Webhook
         app.MapPost("/api/integrations/booking/property-created", async (
             HttpRequest request,
             IHttpClientFactory httpClientFactory,
             IConfiguration config) =>
         {
-            if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
-            }
-
-            request.EnableBuffering();
-            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-            var bodyText = await reader.ReadToEndAsync();
-            request.Body.Position = 0;
-
-            if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
-            }
-
-            try
-            {
-                var propReq = JsonSerializer.Deserialize<JsonElement>(bodyText);
-                var client = httpClientFactory.CreateClient("Alojamientos");
-                var response = await client.PostAsJsonAsync("api/v1/Alojamientos", propReq);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var err = await response.Content.ReadAsStringAsync();
-                    return Results.Json(ApiResponse<object>.Fail($"Error al crear propiedad en Alojamientos: {err}"), statusCode: (int)response.StatusCode);
-                }
-
-                var result = await response.Content.ReadFromJsonAsync<JsonElement>();
-                return Results.Json(ApiResponse<JsonElement>.Ok(result, "Propiedad creada desde Booking."));
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
-            }
+            return await ForwardToSyncApi(request, httpClientFactory, config, "property-created");
         })
         .WithName("BookingIntegrationPropertyCreated")
         .WithTags("Integraciones")
         .WithOpenApi();
 
-        // Property Updated Webhook
+        // 4. Property Updated Webhook
         app.MapPost("/api/integrations/booking/property-updated", async (
             HttpRequest request,
             IHttpClientFactory httpClientFactory,
             IConfiguration config) =>
         {
-            if (!request.Headers.TryGetValue("X-Api-Key", out var apiKey) || apiKey != config["BookingIntegration:ApiKey"])
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: API Key inválida."), statusCode: 401);
-            }
-
-            request.EnableBuffering();
-            using var reader = new StreamReader(request.Body, Encoding.UTF8, true, 1024, true);
-            var bodyText = await reader.ReadToEndAsync();
-            request.Body.Position = 0;
-
-            if (!request.Headers.TryGetValue("X-Signature", out var signature) || !VerifySignature(bodyText, signature, config["BookingIntegration:HmacSecret"] ?? ""))
-            {
-                return Results.Json(ApiResponse<object>.Fail("No autorizado: Firma inválida."), statusCode: 401);
-            }
-
-            try
-            {
-                var payload = JsonSerializer.Deserialize<PropertyUpdatePayload>(bodyText, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                if (payload == null || payload.AlojamientoId <= 0)
-                {
-                    return Results.Json(ApiResponse<object>.Fail("AlojamientoId inválido."), statusCode: 400);
-                }
-
-                var client = httpClientFactory.CreateClient("Alojamientos");
-                var response = await client.PutAsJsonAsync($"api/v1/Alojamientos/{payload.AlojamientoId}", payload.Data);
-                if (!response.IsSuccessStatusCode)
-                {
-                    var err = await response.Content.ReadAsStringAsync();
-                    return Results.Json(ApiResponse<object>.Fail($"Error al actualizar propiedad en Alojamientos: {err}"), statusCode: (int)response.StatusCode);
-                }
-
-                return Results.Ok(ApiResponse<object>.Ok(null, "Propiedad actualizada desde Booking."));
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
-            }
+            return await ForwardToSyncApi(request, httpClientFactory, config, "property-updated");
         })
         .WithName("BookingIntegrationPropertyUpdated")
         .WithTags("Integraciones")
@@ -268,9 +124,6 @@ public static class BookingIntegrationEndpoints
         return computedSignature.Equals(sig, StringComparison.OrdinalIgnoreCase);
     }
 }
-
-public record CancelWebhookPayload(string CodigoReserva);
-public record PropertyUpdatePayload(int AlojamientoId, JsonElement Data);
 
 public record CrearPropiedadFrontendRequest(
     string Nombre,

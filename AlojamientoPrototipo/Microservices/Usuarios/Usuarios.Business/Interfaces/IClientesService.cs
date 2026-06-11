@@ -7,6 +7,7 @@ public interface IClientesService
     Task<IEnumerable<ClienteResponse>> GetAllAsync(int page, int size, string? nombre);
     Task<ClienteResponse?> GetByIdAsync(int clienteId);
     Task<ClienteResponse?> GetByCedulaAsync(string cedula);
+    Task<ClienteResponse?> GetByEmailAsync(string email);
     Task RegistrarClienteAsync(RegistrarClienteRequest request);
     Task ActualizarClienteAsync(int clienteId, ActualizarClienteRequest request);
     Task CambiarEstadoAsync(int clienteId, CambiarEstadoRequest request);

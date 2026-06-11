@@ -31,7 +31,9 @@ public class CalendarioGrpcService : CalendarioGrpc.CalendarioGrpcBase
                     HabitacionId = request.HabitacionId,
                     FechaInicio = fechaInicio,
                     FechaFin = fechaFinExclusiva,
-                    Estado = "Ocupado"
+                    Estado = "Ocupado",
+                    ReservaId = request.ReservaId,
+                    Origen = request.Origen
                 });
             }
             catch (Exception ex)

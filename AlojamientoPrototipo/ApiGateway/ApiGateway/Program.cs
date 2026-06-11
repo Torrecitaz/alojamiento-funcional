@@ -28,6 +28,7 @@ SanitizeConfigurationUrl("Microservices:UsuariosUrl");
 SanitizeConfigurationUrl("Microservices:AlojamientosUrl");
 SanitizeConfigurationUrl("Microservices:ReservasUrl");
 SanitizeConfigurationUrl("Microservices:FacturacionUrl");
+SanitizeConfigurationUrl("Microservices:BookingIntegrationUrl");
 
 SanitizeConfigurationUrl("ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address");
 SanitizeConfigurationUrl("ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address");
@@ -70,6 +71,12 @@ builder.Services.AddHttpClient("Reservas", client =>
 builder.Services.AddHttpClient("Facturacion", client =>
 {
     var url = builder.Configuration["Microservices:FacturacionUrl"] ?? "http://localhost:5004";
+    client.BaseAddress = new Uri(url);
+});
+
+builder.Services.AddHttpClient("BookingIntegration", client =>
+{
+    var url = builder.Configuration["Microservices:BookingIntegrationUrl"] ?? "http://localhost:5005";
     client.BaseAddress = new Uri(url);
 });
 

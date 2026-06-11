@@ -27,6 +27,9 @@
     <Project Path="Microservices/Usuarios/Usuarios.DataAccess/Usuarios.DataAccess.csproj" />
     <Project Path="Microservices/Usuarios/Usuarios.DataManagement/Usuarios.DataManagement.csproj" />
   </Folder>
+  <Folder Name="/Microservices/BookingIntegration/">
+    <Project Path="Microservices/BookingIntegration/BookingIntegration.API/BookingIntegration.API.csproj" />
+  </Folder>
   <Folder Name="/Shared/">
     <Project Path="Shared/Shared.Kernel/Shared.Kernel.csproj" />
     <Project Path="Shared/Shared.Protos/Shared.Protos.csproj" />

@@ -35,6 +35,13 @@ public class ClientesDataService : IClientesDataService
         return entity != null ? ClientesMapper.ToDataModel(entity) : null;
     }
 
+    public async Task<ClienteDataModel?> GetByEmailAsync(string email)
+    {
+        var entities = await _repo.FindAsync(c => c.Email == email);
+        var entity = entities.FirstOrDefault();
+        return entity != null ? ClientesMapper.ToDataModel(entity) : null;
+    }
+
     public async Task RegistrarClienteAsync(string email, string password, string nombre, string cedula, string telefono, string domicilio)
     {
         await _repo.RegistrarClienteSPAsync(email, password, nombre, cedula, telefono, domicilio);

@@ -76,7 +76,9 @@ public static class AlojamientosMapper
         HabitacionId = entity.HabitacionId,
         Fecha = entity.Fecha,
         Estado = entity.Estado,
-        FechaModificacion = entity.FechaModificacion
+        FechaModificacion = entity.FechaModificacion,
+        ReservaId = entity.ReservaId,
+        Origen = entity.Origen
     };
 
     public static void UpdateEntity(AlojamientoEntity entity, AlojamientoDataModel model)

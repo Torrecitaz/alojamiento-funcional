@@ -33,7 +33,9 @@ public class CalendarioDataService : ICalendarioDataService
             HabitacionId = m.HabitacionId,
             Fecha = m.Fecha,
             Estado = m.Estado,
-            FechaModificacion = DateTime.UtcNow
+            FechaModificacion = DateTime.UtcNow,
+            ReservaId = m.ReservaId,
+            Origen = string.IsNullOrEmpty(m.Origen) ? "ALOJAEXPRESS" : m.Origen
         }).ToList();
 
         await _repository.AddRangeAsync(entities);

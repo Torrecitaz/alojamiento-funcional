@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import MainLayout from './layouts/MainLayout';
 import AdminGuard from './components/AdminGuard';
+import AuthGuard from './components/AuthGuard';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -44,9 +45,9 @@ export default function App() {
           <Route path="/register" element={<RegisterPage />} />
           <Route path="/propiedades" element={<PropiedadesPage />} />
           <Route path="/propiedades/:id" element={<PropiedadDetallePage />} />
-          <Route path="/mis-reservas" element={<MisReservasPage />} />
-          <Route path="/checkout/:codigo" element={<CheckoutPage />} />
-          <Route path="/factura/:codigo" element={<FacturaPage />} />
+          <Route path="/mis-reservas" element={<AuthGuard><MisReservasPage /></AuthGuard>} />
+          <Route path="/checkout/:codigo" element={<AuthGuard><CheckoutPage /></AuthGuard>} />
+          <Route path="/factura/:codigo" element={<AuthGuard><FacturaPage /></AuthGuard>} />
         </Route>
 
         {/* Rutas Admin con layout propio (sin Navbar/Footer público) */}

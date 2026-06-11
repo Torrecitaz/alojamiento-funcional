@@ -55,6 +55,8 @@ public class CalendarioDisponibilidadDataModel
     public DateOnly Fecha { get; set; }
     public string Estado { get; set; } = string.Empty;
     public DateTime? FechaModificacion { get; set; }
+    public string? ReservaId { get; set; }
+    public string Origen { get; set; } = "ALOJAEXPRESS";
 }
 
 public class HabitacionDataModel

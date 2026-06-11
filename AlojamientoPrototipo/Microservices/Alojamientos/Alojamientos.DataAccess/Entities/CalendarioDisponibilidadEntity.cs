@@ -18,6 +18,12 @@ public class CalendarioDisponibilidadEntity
     public string Estado { get; set; } = "Disponible"; // Disponible, Ocupado, Bloqueado
 
     public DateTime? FechaModificacion { get; set; }
+    
+    [MaxLength(50)]
+    public string? ReservaId { get; set; }
+
+    [Required, MaxLength(20)]
+    public string Origen { get; set; } = "ALOJAEXPRESS";
 
     // Navegación
     [ForeignKey("HabitacionId")]

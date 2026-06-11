@@ -172,6 +172,7 @@ public record CrearReservaRequest
     public int NumNinos { get; init; }
     public bool LlevaMascotas { get; init; }
     public string? CodigoDescuento { get; init; }
+    public Guid? ExternalId { get; init; }
     
     [Required]
     public List<CrearReservaHabitacionDto> Habitaciones { get; init; } = new();

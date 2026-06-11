@@ -40,7 +40,8 @@ public class ReservasDataService : IReservasDataService
             SubTotal = model.SubTotal,
             Total = model.Total,
             Estado = model.Estado,
-            CodigoReserva = model.CodigoReserva
+            CodigoReserva = model.CodigoReserva,
+            ExternalId = model.ExternalId
         };
 
         foreach(var det in model.DetallesHabitacion)
@@ -78,6 +79,13 @@ public class ReservasDataService : IReservasDataService
     public async Task<ReservaDataModel?> GetByCodigoAsync(string codigo)
     {
         var entities = await _repo.FindAsync(r => r.CodigoReserva == codigo);
+        var entity = entities.FirstOrDefault();
+        return entity != null ? ReservasMapper.ToDataModel(entity) : null;
+    }
+
+    public async Task<ReservaDataModel?> GetByExternalIdAsync(Guid externalId)
+    {
+        var entities = await _repo.FindAsync(r => r.ExternalId == externalId);
         var entity = entities.FirstOrDefault();
         return entity != null ? ReservasMapper.ToDataModel(entity) : null;
     }

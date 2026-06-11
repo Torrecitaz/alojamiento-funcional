@@ -39,6 +39,7 @@ public static class ReservasMapper
         Total = entity.Total,
         Estado = entity.Estado,
         CodigoReserva = entity.CodigoReserva,
+        ExternalId = entity.ExternalId,
         FechaCreacion = entity.FechaCreacion,
         FechaModificacion = entity.FechaModificacion,
         Descuento = entity.Descuento != null ? ToDataModel(entity.Descuento) : null,

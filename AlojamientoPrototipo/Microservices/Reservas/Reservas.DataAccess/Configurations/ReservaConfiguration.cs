@@ -22,6 +22,8 @@ public class ReservaConfiguration : IEntityTypeConfiguration<ReservaEntity>
         builder.Property(r => r.Estado).HasMaxLength(30).HasDefaultValue("Pendiente");
         builder.Property(r => r.CodigoReserva).HasMaxLength(20).IsRequired();
         builder.Property(r => r.FechaCreacion).HasDefaultValueSql("CURRENT_TIMESTAMP");
+        builder.Property(r => r.ExternalId).IsRequired(false);
+        builder.HasIndex(r => r.ExternalId).IsUnique().HasFilter("\"ExternalId\" IS NOT NULL");
 
         // Relaciones
         builder.HasOne(r => r.Descuento)

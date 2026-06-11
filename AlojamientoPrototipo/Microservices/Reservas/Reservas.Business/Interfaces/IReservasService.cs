@@ -10,4 +10,5 @@ public interface IReservasService
     Task<ReservaResponse> CrearAsync(CrearReservaRequest request);
     Task ActualizarEstadoAsync(int id, ActualizarEstadoReservaRequest request);
     Task<ReservaResponse?> GetByCodigoAsync(string codigo);
+    Task<ReservaResponse?> GetByExternalIdAsync(Guid externalId);
 }

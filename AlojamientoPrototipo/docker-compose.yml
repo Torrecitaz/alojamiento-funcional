@@ -35,6 +35,7 @@ services:
       - pg_alojamientos:/var/lib/postgresql/data
       - ../DB_Scripts/02_DB_Alojamientos.sql:/docker-entrypoint-initdb.d/02_init.sql
       - ../DB_Scripts/06_Update_AlojaExpress.sql:/docker-entrypoint-initdb.d/06_update.sql
+      - ../DB_Scripts/09_Alter_Calendario_Disponibilidad_Compartida.sql:/docker-entrypoint-initdb.d/09_disponibilidad_compartida.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d db_alojamientos"]
       interval: 10s
@@ -73,6 +74,7 @@ services:
     volumes:
       - pg_reservas:/var/lib/postgresql/data
       - ../DB_Scripts/03_DB_Reservas.sql:/docker-entrypoint-initdb.d/03_init.sql
+      - ../DB_Scripts/08_Alter_Reservas_ExternalId.sql:/docker-entrypoint-initdb.d/08_external_id.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres -d db_reservas"]
       interval: 10s
@@ -98,6 +100,25 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres_booking:
+    image: postgres:15-alpine
+    container_name: postgres_booking
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password}
+      POSTGRES_DB: db_booking
+    ports:
+      - "5436:5432"
+    volumes:
+      - pg_booking:/var/lib/postgresql/data
+      - ../DB_Scripts/script_booking.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d db_booking"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   # ── Microservicios ───────────────────────────────────────────────
   alojamientos-api:
     build:
@@ -113,7 +134,10 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__ConexionAlojamientos: "Host=postgres_alojamientos;Port=5432;Database=db_alojamientos;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-password};"
-      ConnectionStrings__RabbitMQ: "amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/"
+      ConnectionStrings__RabbitMQ: "amqps://rtiqdlfy:u7i-CTdpjA4fvRvRAPsLD1Kxu6W-qfo0@leopard.lmq.cloudamqp.com/rtiqdlfy"
+      Cloudinary__CloudName: ${Cloudinary__CloudName:-}
+      Cloudinary__ApiKey: ${Cloudinary__ApiKey:-}
+      Cloudinary__ApiSecret: ${Cloudinary__ApiSecret:-}
 
   facturacion-api:
     build:
@@ -129,7 +153,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__ConexionFacturacion: "Host=postgres_facturacion;Port=5432;Database=db_facturacion;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-password};"
-      ConnectionStrings__RabbitMQ: "amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/"
+      ConnectionStrings__RabbitMQ: "amqps://rtiqdlfy:u7i-CTdpjA4fvRvRAPsLD1Kxu6W-qfo0@leopard.lmq.cloudamqp.com/rtiqdlfy"
 
   reservas-api:
     build:
@@ -145,7 +169,7 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__ConexionReservas: "Host=postgres_reservas;Port=5432;Database=db_reservas;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-password};"
-      ConnectionStrings__RabbitMQ: "amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/"
+      ConnectionStrings__RabbitMQ: "amqps://rtiqdlfy:u7i-CTdpjA4fvRvRAPsLD1Kxu6W-qfo0@leopard.lmq.cloudamqp.com/rtiqdlfy"
       GrpcUrls__Alojamientos: "http://alojamientos-api:8080"
 
   usuarios-api:
@@ -160,6 +184,25 @@ services:
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ConnectionStrings__ConexionUsuarios: "Host=postgres_usuarios;Port=5432;Database=db_usuarios;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-password};"
+
+  booking-integration-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.BookingIntegration
+    container_name: booking-integration-api
+    restart: unless-stopped
+    depends_on:
+      postgres_booking:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__ConexionBooking: "Host=postgres_booking;Port=5432;Database=db_booking;Username=${POSTGRES_USER:-postgres};Password=${POSTGRES_PASSWORD:-password};"
+      ConnectionStrings__RabbitMQ: "amqps://rtiqdlfy:u7i-CTdpjA4fvRvRAPsLD1Kxu6W-qfo0@leopard.lmq.cloudamqp.com/rtiqdlfy"
+      Microservices__UsuariosUrl: "http://usuarios-api:8080"
+      Microservices__ReservasUrl: "http://reservas-api:8080"
+      Microservices__AlojamientosUrl: "http://alojamientos-api:8080"
 
   # ── API Gateway (público) ────────────────────────────────────────
   api-gateway:
@@ -187,7 +230,12 @@ services:
       ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address: "http://facturacion-api:8080/"
       BookingIntegration__ApiKey: ${BOOKING_API_KEY:-alojaexpress_booking_secret_key_12345}
       BookingIntegration__HmacSecret: ${BOOKING_HMAC_SECRET:-alojaexpress_booking_hmac_secret_67890}
-      ConnectionStrings__RabbitMQ: "amqp://${RABBITMQ_USER:-guest}:${RABBITMQ_PASS:-guest}@rabbitmq:5672/"
+      ConnectionStrings__RabbitMQ: "amqps://rtiqdlfy:u7i-CTdpjA4fvRvRAPsLD1Kxu6W-qfo0@leopard.lmq.cloudamqp.com/rtiqdlfy"
+      BookingIntegration__BookingApiUrl: "http://booking-integration-api:8080"
+      Microservices__BookingIntegrationUrl: "http://booking-integration-api:8080"
+      Cloudinary__CloudName: ${Cloudinary__CloudName:-}
+      Cloudinary__ApiKey: ${Cloudinary__ApiKey:-}
+      Cloudinary__ApiSecret: ${Cloudinary__ApiSecret:-}
 
   # ── Frontend ────────────────────────────────────────────────────
   frontend:
@@ -208,4 +256,5 @@ volumes:
   pg_facturacion:
   pg_reservas:
   pg_usuarios:
+  pg_booking:
   rabbitmq_data:

@@ -49,7 +49,8 @@ public static class ReservaEndpoints
                     numNinos = request.NumNinos,
                     llevaMascotas = request.LlevaMascotas,
                     codigoDescuento = request.CodigoDescuento,
-                    habitaciones = internalHabitaciones
+                    habitaciones = internalHabitaciones,
+                    externalId = request.ExternalId
                 };
                 
                 var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");

@@ -22,6 +22,8 @@ public record BloquearFechasRequest
     public DateOnly FechaFin { get; init; }
 
     public string Estado { get; init; } = "Bloqueado";
+    public string? ReservaId { get; init; }
+    public string? Origen { get; init; }
 }
 
 public record LiberarFechasRequest

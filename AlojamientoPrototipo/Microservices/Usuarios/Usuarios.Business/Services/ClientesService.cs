@@ -40,6 +40,12 @@ public class ClientesService : IClientesService
         return model != null ? ClientesBusinessMapper.ToResponse(model) : null;
     }
 
+    public async Task<ClienteResponse?> GetByEmailAsync(string email)
+    {
+        var model = await _clienteData.GetByEmailAsync(email);
+        return model != null ? ClientesBusinessMapper.ToResponse(model) : null;
+    }
+
     public async Task RegistrarClienteAsync(RegistrarClienteRequest request)
     {
         string cedula = request.Cedula ?? string.Empty;

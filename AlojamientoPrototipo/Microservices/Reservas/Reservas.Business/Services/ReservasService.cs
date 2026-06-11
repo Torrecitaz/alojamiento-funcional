@@ -64,14 +64,21 @@ public class ReservasService : IReservasService
                 throw new DescuentoInvalidoException(request.CodigoDescuento);
         }
 
-        // 3. Verificación de Disponibilidad vía gRPC (Sincrónico y Rápido)
+        // 3. Generación del código de reserva antes de la verificación para asociarlo al bloqueo del calendario
+        string codigoReserva = $"RES-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}";
+        string grpcReservaId = request.ExternalId?.ToString() ?? codigoReserva;
+        string grpcOrigen = request.ExternalId.HasValue ? "BOOKING" : "ALOJAEXPRESS";
+
+        // 4. Verificación de Disponibilidad vía gRPC (Sincrónico y Rápido)
         foreach (var habReq in request.Habitaciones)
         {
             var disponibilidad = await _calendarioGrpcClient.VerificarDisponibilidadAsync(new Shared.Protos.DisponibilidadRequest
             {
                 HabitacionId = habReq.HabitacionId,
                 FechaInicio = request.FechaCheckIn.ToString("yyyy-MM-dd"),
-                FechaFin = request.FechaCheckOut.ToString("yyyy-MM-dd")
+                FechaFin = request.FechaCheckOut.ToString("yyyy-MM-dd"),
+                ReservaId = grpcReservaId,
+                Origen = grpcOrigen
             });
 
             if (!disponibilidad.Disponible)
@@ -80,7 +87,7 @@ public class ReservasService : IReservasService
             }
         }
 
-        // 4. Generación de detalles y subtotal
+        // 5. Generación de detalles y subtotal
         var detalles = new List<ReservaDetalleHabitacionDataModel>();
         decimal subTotal = 0;
 
@@ -97,7 +104,7 @@ public class ReservasService : IReservasService
             subTotal += subTotalHab;
         }
 
-        // 4. Cálculo del total con descuento
+        // 6. Cálculo del total con descuento
         decimal total = subTotal;
         if (descuento != null)
         {
@@ -105,7 +112,7 @@ public class ReservasService : IReservasService
             total -= montoDescuento;
         }
 
-        // 5. Preparar modelo de datos
+        // 7. Preparar modelo de datos
         var model = new ReservaDataModel
         {
             ClienteId = request.ClienteId,
@@ -120,7 +127,8 @@ public class ReservasService : IReservasService
             SubTotal = subTotal,
             Total = total,
             Estado = "Pendiente",
-            CodigoReserva = $"RES-{DateTime.UtcNow:yyyyMMdd}-{Guid.NewGuid().ToString()[..4].ToUpper()}",
+            CodigoReserva = codigoReserva,
+            ExternalId = request.ExternalId,
             DetallesHabitacion = detalles
         };
 
@@ -184,6 +192,12 @@ public class ReservasService : IReservasService
     public async Task<ReservaResponse?> GetByCodigoAsync(string codigo)
     {
         var reserva = await _reservasDataService.GetByCodigoAsync(codigo);
+        return reserva != null ? ReservasBusinessMapper.ToResponse(reserva) : null;
+    }
+
+    public async Task<ReservaResponse?> GetByExternalIdAsync(Guid externalId)
+    {
+        var reserva = await _reservasDataService.GetByExternalIdAsync(externalId);
         return reserva != null ? ReservasBusinessMapper.ToResponse(reserva) : null;
     }
 }

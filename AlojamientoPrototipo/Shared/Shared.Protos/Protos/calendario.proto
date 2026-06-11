@@ -14,6 +14,8 @@ message DisponibilidadRequest {
   int32 habitacion_id = 1;
   string fecha_inicio = 2; // Formato: "YYYY-MM-DD"
   string fecha_fin = 3;    // Formato: "YYYY-MM-DD"
+  string reserva_id = 4;   // Código de reserva o UUID de Booking
+  string origen = 5;       // Origen: ALOJAEXPRESS o BOOKING
 }
 
 message DisponibilidadResponse {

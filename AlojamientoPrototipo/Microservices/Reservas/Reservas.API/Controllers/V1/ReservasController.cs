@@ -44,4 +44,20 @@ public class ReservasController : ControllerBase
         var result = await _service.GetByCodigoAsync(codigo);
         return result == null ? NotFound() : Ok(result);
     }
+
+    [HttpGet("external/{externalId}")]
+    public async Task<IActionResult> GetByExternalId(Guid externalId)
+    {
+        var result = await _service.GetByExternalIdAsync(externalId);
+        return result == null ? NotFound() : Ok(result);
+    }
+
+    [HttpPatch("external/{externalId}/estado")]
+    public async Task<IActionResult> ActualizarEstadoByExternalId(Guid externalId, [FromBody] ActualizarEstadoReservaRequest request)
+    {
+        var result = await _service.GetByExternalIdAsync(externalId);
+        if (result == null) return NotFound();
+        await _service.ActualizarEstadoAsync(result.ReservaId, request);
+        return NoContent();
+    }
 }

@@ -58,7 +58,9 @@ public class CalendarioService : ICalendarioService
             {
                 HabitacionId = request.HabitacionId,
                 Fecha = fecha,
-                Estado = string.IsNullOrEmpty(request.Estado) ? "Bloqueado" : request.Estado
+                Estado = string.IsNullOrEmpty(request.Estado) ? "Bloqueado" : request.Estado,
+                ReservaId = request.ReservaId,
+                Origen = string.IsNullOrEmpty(request.Origen) ? "ALOJAEXPRESS" : request.Origen
             });
         }
 

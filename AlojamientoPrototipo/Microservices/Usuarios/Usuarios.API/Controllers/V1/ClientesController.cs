@@ -30,6 +30,13 @@ public class ClientesController : ControllerBase
         return result == null ? NotFound() : Ok(result);
     }
 
+    [HttpGet("email/{email}")]
+    public async Task<IActionResult> GetByEmail(string email)
+    {
+        var result = await _service.GetByEmailAsync(email);
+        return result == null ? NotFound() : Ok(result);
+    }
+
     [HttpPost]
     [HttpPost("registrar")]
     public async Task<IActionResult> Registrar([FromBody] RegistrarClienteRequest request)

@@ -10,6 +10,7 @@ public interface IReservasDataService
     Task UpdateStatusAsync(int id, string nuevoEstado);
     Task DeleteAsync(int id);
     Task<ReservaDataModel?> GetByCodigoAsync(string codigo);
+    Task<ReservaDataModel?> GetByExternalIdAsync(Guid externalId);
 }
 
 public interface IDescuentosDataService

@@ -13,6 +13,8 @@ public class CalendarioDisponibilidadConfiguration : IEntityTypeConfiguration<Ca
 
         builder.Property(c => c.Fecha).IsRequired();
         builder.Property(c => c.Estado).HasMaxLength(20).HasDefaultValue("Disponible");
+        builder.Property(c => c.ReservaId).HasMaxLength(50).IsRequired(false);
+        builder.Property(c => c.Origen).HasMaxLength(20).HasDefaultValue("ALOJAEXPRESS").IsRequired();
 
         // Relaciones
         builder.HasOne(c => c.Habitacion)
