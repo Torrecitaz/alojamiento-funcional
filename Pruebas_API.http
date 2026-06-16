@@ -76,3 +76,70 @@ Accept: application/json
 ### 4.1 Obtener Métodos de Pago Disponibles (Checkout)
 GET {{ACTIVE_HOST}}/api/facturas/metodos-pago
 Accept: application/json
+
+
+# ── 5. GraphQL BFF ────────────────────────────────────────────────
+
+### 5.1 Consultar Catálogo Agregado (Alojamiento + Habitaciones + Fotos)
+POST {{ACTIVE_HOST}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query { alojamientos { alojamientoId nombre ciudad direccion tipoAlojamientoNombre estrellas calificacionPromedio habitaciones { habitacionId nombre precioNoche } fotos { url descripcion } } }"
+}
+
+### 5.2 Consultar Alojamiento Detalle por ID (GraphQL BFF)
+POST {{ACTIVE_HOST}}/graphql
+Content-Type: application/json
+
+{
+  "query": "query { alojamiento(id: 1) { alojamientoId nombre ciudad direccion habitaciones { habitacionId nombre precioNoche } fotos { url } } }"
+}
+
+
+# ── 6. RESERVAS V2 E IDEMPOTENCIA ─────────────────────────────────
+
+### 6.1 Crear Reserva V2 (Primera Petición - Exito)
+# Reemplaza el header X-Idempotency-Key con un nuevo UUID si vuelves a ejecutar para que no devuelva cache
+POST {{ACTIVE_HOST}}/api/v2/reservas/booking
+Content-Type: application/json
+X-Idempotency-Key: c9a646d3-9c61-4c70-9b48-8df09bb956b1
+
+{
+  "clienteId": 1,
+  "habitacionId": 1,
+  "fechaCheckIn": "2026-07-10",
+  "fechaCheckOut": "2026-07-15",
+  "numAdultos": 2,
+  "numNinos": 0,
+  "llevaMascotas": false
+}
+
+### 6.2 Reintentar Crear Reserva V2 con la misma X-Idempotency-Key (Debe devolver la respuesta cacheada directamente)
+POST {{ACTIVE_HOST}}/api/v2/reservas/booking
+Content-Type: application/json
+X-Idempotency-Key: c9a646d3-9c61-4c70-9b48-8df09bb956b1
+
+{
+  "clienteId": 1,
+  "habitacionId": 1,
+  "fechaCheckIn": "2026-07-10",
+  "fechaCheckOut": "2026-07-15",
+  "numAdultos": 2,
+  "numNinos": 0,
+  "llevaMascotas": false
+}
+
+### 6.3 Crear Reserva V2 sin X-Idempotency-Key (Debe devolver 400 Bad Request)
+POST {{ACTIVE_HOST}}/api/v2/reservas/booking
+Content-Type: application/json
+
+{
+  "clienteId": 1,
+  "habitacionId": 1,
+  "fechaCheckIn": "2026-07-10",
+  "fechaCheckOut": "2026-07-15",
+  "numAdultos": 2,
+  "numNinos": 0,
+  "llevaMascotas": false
+}

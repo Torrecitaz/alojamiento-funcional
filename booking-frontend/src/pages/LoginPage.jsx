@@ -32,7 +32,8 @@ export default function LoginPage() {
         navigate('/');
       }
     } catch (err) {
-      const msg = err.response?.data?.mensaje || 'Credenciales inválidas.';
+      const data = err.response?.data;
+      const msg = data?.message || data?.Message || data?.mensaje || data?.Mensaje || 'Credenciales inválidas.';
       toast.error(msg);
     } finally {
       setLoading(false);

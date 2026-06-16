@@ -32,7 +32,7 @@ CREATE TABLE Localizaciones (
 
 CREATE TABLE Usuarios (  
     UsuarioId       SERIAL PRIMARY KEY,
-    Rol             VARCHAR(10) NOT NULL DEFAULT 'Cliente',
+    Rol             VARCHAR(50) NOT NULL DEFAULT 'Cliente',
     Email           VARCHAR(200) NOT NULL UNIQUE,
     PasswordHash    VARCHAR(500) NOT NULL,
     NombreCompleto  VARCHAR(200) NOT NULL,

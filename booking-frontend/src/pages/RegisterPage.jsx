@@ -22,8 +22,8 @@ export default function RegisterPage() {
       toast.error('Las contraseñas no coinciden.');
       return;
     }
-    if (form.password.length < 6) {
-      toast.error('La contraseña debe tener al menos 6 caracteres.');
+    if (form.password.length < 8) {
+      toast.error('La contraseña debe tener al menos 8 caracteres.');
       return;
     }
     setLoading(true);
@@ -38,11 +38,16 @@ export default function RegisterPage() {
       navigate('/login');
     } catch (err) {
       const data = err.response?.data;
-      if (data?.errores && data.errores.length > 0) {
-        // Mostrar cada error de validación
+      if (data?.errors) {
+        if (Array.isArray(data.errors)) {
+          data.errors.forEach(error => toast.error(error));
+        } else if (typeof data.errors === 'object') {
+          Object.values(data.errors).flat().forEach(error => toast.error(error));
+        }
+      } else if (data?.errores && Array.isArray(data.errores)) {
         data.errores.forEach(error => toast.error(error));
       } else {
-        const msg = data?.mensaje || data?.Mensaje || 'Error al crear la cuenta.';
+        const msg = data?.message || data?.Message || data?.mensaje || data?.Mensaje || 'Error al crear la cuenta.';
         toast.error(msg);
       }
     } finally {

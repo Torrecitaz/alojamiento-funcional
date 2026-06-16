@@ -237,3 +237,25 @@ public record CheckoutBookingResponse
     public string Moneda { get; init; } = "USD";
     public string Estado { get; init; } = string.Empty;
 }
+
+public record ReservaBookingRequestDtoV2
+{
+    [Required]
+    public int ClienteId { get; init; }
+    
+    [Required]
+    public int HabitacionId { get; init; }
+    
+    [Required]
+    public DateOnly FechaCheckIn { get; init; }
+    
+    [Required]
+    public DateOnly FechaCheckOut { get; init; }
+    
+    [Required]
+    public int NumAdultos { get; init; }
+    
+    public int NumNinos { get; init; }
+    public bool LlevaMascotas { get; init; }
+    public string? CodigoDescuento { get; init; }
+}

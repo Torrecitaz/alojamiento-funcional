@@ -11,7 +11,7 @@ public class UsuariosConfiguration : IEntityTypeConfiguration<UsuarioEntity>
         builder.ToTable("usuarios");
         builder.HasKey(u => u.UsuarioId);
 
-        builder.Property(u => u.Rol).HasMaxLength(10).HasDefaultValue("Cliente");
+        builder.Property(u => u.Rol).HasMaxLength(50).HasDefaultValue("Cliente");
         builder.Property(u => u.Email).HasMaxLength(200).IsRequired();
         builder.Property(u => u.PasswordHash).HasMaxLength(500).IsRequired();
         builder.Property(u => u.NombreCompleto).HasMaxLength(200).IsRequired();

@@ -9,8 +9,13 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. Base de datos ─────────────────────────────────
+var conexionAlojamientos = builder.Configuration.GetConnectionString("ConexionAlojamientos");
+if (!string.IsNullOrEmpty(conexionAlojamientos) && !conexionAlojamientos.Contains("Maximum Pool Size", StringComparison.OrdinalIgnoreCase))
+{
+    conexionAlojamientos = conexionAlojamientos.TrimEnd(';') + ";Maximum Pool Size=3;";
+}
 builder.Services.AddDbContext<AlojamientosDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionAlojamientos"))
+    options.UseNpgsql(conexionAlojamientos)
            .UseLowerCaseNamingConvention());
 
 // ── 2. Dependencias de la Aplicación ─────────────────

@@ -25,3 +25,8 @@ node_modules/
 *.bacpac
 ##contrato 
 alojamiento-booking-gateway.yaml    
+
+## Helper scripts containing secrets
+create_admin_supabase.js
+query_users.js
+test_supabase.js

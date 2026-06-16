@@ -9,7 +9,7 @@ public class UsuarioEntity
     [Key]
     public int UsuarioId { get; set; }
 
-    [Required, MaxLength(10)]
+    [Required, MaxLength(50)]
     public string Rol { get; set; } = "Cliente";
 
     [Required, MaxLength(200)]

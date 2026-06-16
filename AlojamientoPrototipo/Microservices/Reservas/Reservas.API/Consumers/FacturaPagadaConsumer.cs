@@ -2,6 +2,7 @@ using MassTransit;
 using Shared.Kernel.Events;
 using Reservas.Business.Interfaces;
 using Reservas.Business.DTOs;
+using Reservas.Business.Exceptions;
 
 namespace Reservas.API.Consumers;
 
@@ -32,6 +33,25 @@ public class FacturaPagadaConsumer : IConsumer<FacturaPagadaEvent>
 
         try
         {
+            try
+            {
+                var reserva = await _reservasService.GetByIdAsync(evento.ReservaId);
+                if (reserva != null && reserva.Estado.Equals("Confirmada", StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogInformation(
+                        "ℹ️ Reserva {ReservaId} ya se encuentra 'Confirmada'. Se ignora el evento de forma idempotente.",
+                        evento.ReservaId);
+                    return;
+                }
+            }
+            catch (ReservaNotFoundException)
+            {
+                _logger.LogWarning(
+                    "⚠️ ReservaId={ReservaId} no encontrada en el sistema. Se descarta el evento.",
+                    evento.ReservaId);
+                return;
+            }
+
             // Actualizar estado de la reserva a "Confirmada" llamando al servicio para publicar los eventos de integración
             await _reservasService.ActualizarEstadoAsync(evento.ReservaId, new ActualizarEstadoReservaRequest("Confirmada"));
 

@@ -8,8 +8,13 @@ AppContext.SetSwitch("Npgsql.EnableLegacyTimestampBehavior", true);
 var builder = WebApplication.CreateBuilder(args);
 
 // ── 1. Base de datos ─────────────────────────────────
+var conexionUsuarios = builder.Configuration.GetConnectionString("ConexionUsuarios");
+if (!string.IsNullOrEmpty(conexionUsuarios) && !conexionUsuarios.Contains("Maximum Pool Size", StringComparison.OrdinalIgnoreCase))
+{
+    conexionUsuarios = conexionUsuarios.TrimEnd(';') + ";Maximum Pool Size=3;";
+}
 builder.Services.AddDbContext<UsuariosDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("ConexionUsuarios"), 
+    options.UseNpgsql(conexionUsuarios, 
             npgsqlOptions => {
                 npgsqlOptions.UseNetTopologySuite();
             })

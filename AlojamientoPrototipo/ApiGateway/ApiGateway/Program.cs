@@ -39,6 +39,13 @@ SanitizeConfigurationUrl("ReverseProxy:Clusters:facturacion-cluster:Destinations
 // Add services to the container.
 builder.Services.AddHealthChecks();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddMemoryCache();
+
+// Register GraphQL Server
+builder.Services.AddGraphQLServer()
+    .AddQueryType<ApiGateway.GraphQL.Query>()
+    .AddType<ApiGateway.GraphQL.AlojamientoType>();
+
 builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
@@ -46,6 +53,37 @@ builder.Services.AddSwaggerGen(options =>
         Title = "AlojamientoMR - Contrato de Integración para Booking",
         Version = "1.0.0",
         Description = "API pública orientada al flujo del usuario final dentro de la plataforma Booking."
+    });
+
+    options.SwaggerDoc("v2", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "AlojamientoMR - Contrato de Integración para Booking - V2",
+        Version = "2.0.0",
+        Description = "API pública orientada al flujo del usuario final (V2) con soporte para Idempotencia obligatoria en reservas."
+    });
+
+    // Add support for X-Idempotency-Key header in Swagger
+    options.AddSecurityDefinition("IdempotencyKey", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Name = "X-Idempotency-Key",
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Clave única UUID de idempotencia para la transacción."
+    });
+
+    options.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "IdempotencyKey"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
 });
 
@@ -158,7 +196,8 @@ app.MapHealthChecks("/health");
 
 app.MapHub<BookingHub>("/bookingHub");
 
-// ── Interceptor de checkout ANTES de YARP ──
+// ── Middleware de idempotencia y Checkout ANTES de YARP ──
+app.UseMiddleware<IdempotencyMiddleware>();
 app.UseMiddleware<CheckoutMiddleware>();
 
 if (app.Environment.IsDevelopment())
@@ -167,8 +206,12 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI(c =>
     {
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Public API Gateway v1");
+        c.SwaggerEndpoint("/swagger/v2/swagger.json", "Public API Gateway v2");
     });
 }
+
+// ── Mapear GraphQL BFF ──
+app.MapGraphQL("/graphql");
 
 // ── Mapear Endpoints Modularizados ──
 app.MapUsuarioEndpoints();

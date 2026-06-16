@@ -414,5 +414,164 @@ public static class ReservaEndpoints
         .WithName("CancelarReserva")
         .WithTags("Reservas")
         .WithOpenApi();
+
+        // 12. Crear reserva V2 (Simplificada e Idempotente)
+        app.MapPost("/api/v2/reservas/booking", async (
+            ReservaBookingRequestDtoV2 request,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                if (request.FechaCheckOut <= request.FechaCheckIn)
+                {
+                    return Results.Json(ApiResponse<ReservaDto>.Fail("La fecha de check-out debe ser posterior a la de check-in."), statusCode: 400);
+                }
+
+                var numNoches = request.FechaCheckOut.DayNumber - request.FechaCheckIn.DayNumber;
+
+                // 1. Obtener detalles de la habitación para auto-resolver AlojamientoId y PrecioNoche
+                var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+                var roomResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/{request.HabitacionId}");
+                if (!roomResponse.IsSuccessStatusCode)
+                {
+                    return Results.Json(ApiResponse<ReservaDto>.Fail($"La habitación con ID {request.HabitacionId} no fue encontrada en el catálogo."), statusCode: 404);
+                }
+
+                var room = await roomResponse.Content.ReadFromJsonAsync<HabitacionInternalResponse>();
+                if (room == null)
+                {
+                    return Results.Json(ApiResponse<ReservaDto>.Fail("No se pudo leer la información de la habitación."), statusCode: 500);
+                }
+
+                // 2. Construir payload completo para Reservas V1
+                var internalHabitaciones = new List<object>
+                {
+                    new
+                    {
+                        habitacionId = request.HabitacionId,
+                        precioPorNoche = room.PrecioNoche,
+                        numNoches = numNoches
+                    }
+                };
+
+                var internalReq = new
+                {
+                    clienteId = request.ClienteId,
+                    alojamientoId = room.AlojamientoId,
+                    fechaCheckIn = request.FechaCheckIn,
+                    fechaCheckOut = request.FechaCheckOut,
+                    numAdultos = request.NumAdultos,
+                    numNinos = request.NumNinos,
+                    llevaMascotas = request.LlevaMascotas,
+                    codigoDescuento = request.CodigoDescuento,
+                    habitaciones = internalHabitaciones
+                };
+
+                var fechaFinExclusiva = request.FechaCheckOut.AddDays(-1);
+                var reservasClient = httpClientFactory.CreateClient("Reservas");
+                HttpResponseMessage response;
+                try
+                {
+                    response = await reservasClient.PostAsJsonAsync("api/v1/Reservas", internalReq);
+                }
+                catch (Exception ex)
+                {
+                    // Compensación: liberar fechas si falla la conexión al MS Reservas
+                    var liberarReq = new
+                    {
+                        habitacionId = request.HabitacionId,
+                        fechaInicio = request.FechaCheckIn,
+                        fechaFin = fechaFinExclusiva
+                    };
+                    await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", liberarReq);
+                    return Results.Json(ApiResponse<ReservaDto>.Fail($"Error de comunicación al crear reserva: {ex.Message}"), statusCode: 500);
+                }
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errContent = await response.Content.ReadAsStringAsync();
+                    // Compensación: liberar fechas si la creación falló en Reservas
+                    var liberarReq = new
+                    {
+                        habitacionId = request.HabitacionId,
+                        fechaInicio = request.FechaCheckIn,
+                        fechaFin = fechaFinExclusiva
+                    };
+                    await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", liberarReq);
+                    return Results.Json(ApiResponse<ReservaDto>.Fail($"Error al crear reserva: {errContent}"), statusCode: (int)response.StatusCode);
+                }
+
+                var internalRes = await response.Content.ReadFromJsonAsync<ReservaInternalResponse>();
+                if (internalRes == null)
+                {
+                    // Compensación: liberar fechas si no pudimos leer la respuesta de la reserva
+                    var liberarReq = new
+                    {
+                        habitacionId = request.HabitacionId,
+                        fechaInicio = request.FechaCheckIn,
+                        fechaFin = fechaFinExclusiva
+                    };
+                    await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", liberarReq);
+                    return Results.Json(ApiResponse<ReservaDto>.Fail("No se pudo obtener la reserva creada del microservicio."), statusCode: 500);
+                }
+
+                // Resolve accommodation name
+                string nombreAlojamiento = "Alojamiento";
+                var accommodationResponse = await alojamientosClient.GetAsync($"api/v1/Alojamientos/{room.AlojamientoId}");
+                if (accommodationResponse.IsSuccessStatusCode)
+                {
+                    var accommodation = await accommodationResponse.Content.ReadFromJsonAsync<AlojamientoInternalResponse>();
+                    if (accommodation != null)
+                    {
+                        nombreAlojamiento = accommodation.Nombre;
+                    }
+                }
+
+                // Resolve client name
+                string nombreCliente = "Cliente";
+                var usuariosClient = httpClientFactory.CreateClient("Usuarios");
+                var clientResponse = await usuariosClient.GetAsync($"api/v1/Clientes/{request.ClienteId}");
+                if (clientResponse.IsSuccessStatusCode)
+                {
+                    var client = await clientResponse.Content.ReadFromJsonAsync<ClienteInternalResponse>();
+                    if (client != null)
+                    {
+                        nombreCliente = client.Usuario?.NombreCompleto ?? "Cliente";
+                    }
+                }
+
+                var mappedDto = new ReservaDto
+                {
+                    ReservaId = internalRes.ReservaId,
+                    CodigoReserva = internalRes.CodigoReserva,
+                    AlojamientoId = internalRes.AlojamientoId,
+                    NombreAlojamiento = nombreAlojamiento,
+                    NombrePropiedad = nombreAlojamiento,
+                    NombreCliente = nombreCliente,
+                    FechaCheckIn = internalRes.FechaCheckIn,
+                    FechaCheckOut = internalRes.FechaCheckOut,
+                    NumNoches = numNoches,
+                    NumAdultos = internalRes.NumAdultos,
+                    NumNinos = internalRes.NumNinos,
+                    LlevaMascotas = internalRes.LlevaMascotas,
+                    NumHabitaciones = internalRes.NumHabitaciones,
+                    SubTotal = internalRes.SubTotal,
+                    Descuento = internalRes.SubTotal - internalRes.Total,
+                    Total = internalRes.Total,
+                    Moneda = "USD",
+                    Estado = internalRes.Estado,
+                    FechaCreacion = internalRes.FechaCreacion
+                };
+
+                return Results.Ok(ApiResponse<ReservaDto>.Ok(mappedDto, "Reserva V2 creada exitosamente"));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<ReservaDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        })
+        .WithName("CrearReservaV2")
+        .WithTags("Reservas V2")
+        .WithOpenApi();
     }
 }
