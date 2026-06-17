@@ -39,7 +39,7 @@ export default function useSignalR() {
 
     if (!globalConnection) {
       const backendUrl = import.meta.env.VITE_API_BASE_URL && import.meta.env.VITE_API_BASE_URL.startsWith('http')
-        ? import.meta.env.VITE_API_BASE_URL.replace('/api/v1', '')
+        ? import.meta.env.VITE_API_BASE_URL.replace('/api/v2', '').replace('/api/v1', '')
         : window.location.origin;
       const connectionUrl = `${backendUrl}/bookingHub`;
 
