@@ -158,7 +158,7 @@ export default function PropiedadesPage() {
       ) : (
         <div className="grid-propiedades">
           {filtered.map((prop, idx) => (
-            <Link to={`/propiedades/${prop.propiedadId}`} className="card prop-card animate-fade-in-up" key={prop.propiedadId} style={{ animationDelay: `${idx * .05}s` }}>
+            <Link to={`/propiedades/${prop.alojamientoId}`} className="card prop-card animate-fade-in-up" key={prop.alojamientoId} style={{ animationDelay: `${idx * .05}s` }}>
               <div className="prop-img-container">
                 {prop.imagenUrl ? (
                   <img src={prop.imagenUrl} alt={prop.nombre} className="prop-img" />

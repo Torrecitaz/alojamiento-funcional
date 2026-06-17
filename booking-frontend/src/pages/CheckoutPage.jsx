@@ -114,7 +114,7 @@ export default function CheckoutPage() {
               <HiOutlineHome size={18} />
               <div>
                 <span className="summary-label">Propiedad</span>
-                <strong>{reserva.nombrePropiedad || reserva.nombreAlojamiento || `Propiedad #${reserva.propiedadId}`}</strong>
+                <strong>{reserva.nombrePropiedad || reserva.nombreAlojamiento || `Alojamiento #${reserva.alojamientoId}`}</strong>
               </div>
             </div>
 

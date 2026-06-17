@@ -25,7 +25,7 @@ export default function FacturaPage() {
               pagoId: f.facturaId,
               fechaPago: f.fechaPago || f.fechaCreacion,
               referenciaPago: `FAC-${f.facturaId}`,
-              tipoPago: f.metodoPago || 'Tarjeta',
+              tipoPago: f.metodoPagoTipo || f.metodoPago || 'Tarjeta',
               monto: f.monto
             }]);
           }

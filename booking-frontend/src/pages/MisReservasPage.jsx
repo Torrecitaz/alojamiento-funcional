@@ -89,7 +89,7 @@ export default function MisReservasPage() {
                 </div>
                 <div className="reserva-detail">
                   <span className="detail-label">Noches</span>
-                  <span className="detail-value">{r.nochesTotal}</span>
+                  <span className="detail-value">{r.numNoches}</span>
                 </div>
                 <div className="reserva-detail">
                   <span className="detail-label">Total</span>
