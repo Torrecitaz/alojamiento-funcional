@@ -1,7 +1,7 @@
 import client from './client';
 
 export const reservasApi = {
-  crear: (data) => client.post('/reservas/booking', data),
+  crear: (data, config) => client.post('/reservas/booking', data, config),
   getByCodigo: (codigoReserva) => client.get(`/reservas-alojaexpress/${codigoReserva}`),
   getByClienteId: (clienteId) => client.get(`/reservas-alojaexpress/cliente/${clienteId}`),
   actualizarEstado: (id, estado) => client.patch(`/reservas-alojaexpress/${id}/estado`, { estado, nuevoEstado: estado }),
