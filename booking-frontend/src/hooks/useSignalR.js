@@ -108,6 +108,23 @@ export default function useSignalR() {
         .then(() => {
           console.log('🔌 Global SignalR connection active.');
           updateState(true);
+          
+          if (user) {
+            if (user.clienteId) {
+              conn.invoke("JoinGroup", `cliente_${user.clienteId}`)
+                .catch(err => console.error("Error joining client group:", err));
+            }
+            if (user.colaboradorId) {
+              conn.invoke("JoinGroup", `colaborador_${user.colaboradorId}`)
+                .catch(err => console.error("Error joining colaborador group:", err));
+            }
+            if (user.roles) {
+              user.roles.forEach(role => {
+                conn.invoke("JoinGroup", `role_${role}`)
+                  .catch(err => console.error(`Error joining role group role_${role}:`, err));
+              });
+            }
+          }
         })
         .catch((err) => {
           console.error('❌ Global SignalR connection failed:', err);

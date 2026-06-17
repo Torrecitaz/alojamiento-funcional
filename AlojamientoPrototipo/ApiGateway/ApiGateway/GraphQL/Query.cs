@@ -2,6 +2,10 @@ using ApiGateway.Models.Internal;
 using HotChocolate;
 using HotChocolate.Types;
 using System.Net.Http.Json;
+using GreenDonut;
+using System.Threading;
+using System.Threading.Tasks;
+using System.Collections.Generic;
 
 namespace ApiGateway.GraphQL;
 
@@ -66,29 +70,95 @@ public class AlojamientoResolvers
 {
     public async Task<List<HabitacionInternalResponse>> GetHabitaciones(
         [Parent] AlojamientoInternalResponse alojamiento,
-        [Service] IHttpClientFactory httpClientFactory)
+        HabitacionesDataLoader dataLoader)
     {
-        var client = httpClientFactory.CreateClient("Alojamientos");
-        var response = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{alojamiento.AlojamientoId}");
-        if (response.IsSuccessStatusCode)
-        {
-            var result = await response.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
-            return result ?? new();
-        }
-        return new();
+        return await dataLoader.LoadAsync(alojamiento.AlojamientoId);
     }
 
     public async Task<List<FotoInternalResponse>> GetFotos(
         [Parent] AlojamientoInternalResponse alojamiento,
-        [Service] IHttpClientFactory httpClientFactory)
+        FotosDataLoader dataLoader)
     {
-        var client = httpClientFactory.CreateClient("Alojamientos");
-        var response = await client.GetAsync($"api/v1/Fotos/alojamiento/{alojamiento.AlojamientoId}");
-        if (response.IsSuccessStatusCode)
+        return await dataLoader.LoadAsync(alojamiento.AlojamientoId);
+    }
+}
+
+public class HabitacionesDataLoader : BatchDataLoader<int, List<HabitacionInternalResponse>>
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public HabitacionesDataLoader(
+        IBatchScheduler batchScheduler,
+        IHttpClientFactory httpClientFactory)
+        : base(batchScheduler)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+
+    protected override async Task<IReadOnlyDictionary<int, List<HabitacionInternalResponse>>> LoadBatchAsync(
+        IReadOnlyList<int> keys,
+        CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient("Alojamientos");
+        var tasks = keys.Select(async id =>
         {
-            var result = await response.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
-            return result ?? new();
-        }
-        return new();
+            try
+            {
+                var response = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{id}", cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    var list = await response.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>(cancellationToken: cancellationToken);
+                    return (id, list ?? new());
+                }
+            }
+            catch
+            {
+                // Ignorar error y retornar lista vacia
+            }
+            return (id, new List<HabitacionInternalResponse>());
+        });
+
+        var results = await Task.WhenAll(tasks);
+        return results.ToDictionary(x => x.id, x => x.Item2);
+    }
+}
+
+public class FotosDataLoader : BatchDataLoader<int, List<FotoInternalResponse>>
+{
+    private readonly IHttpClientFactory _httpClientFactory;
+
+    public FotosDataLoader(
+        IBatchScheduler batchScheduler,
+        IHttpClientFactory httpClientFactory)
+        : base(batchScheduler)
+    {
+        _httpClientFactory = httpClientFactory;
+    }
+
+    protected override async Task<IReadOnlyDictionary<int, List<FotoInternalResponse>>> LoadBatchAsync(
+        IReadOnlyList<int> keys,
+        CancellationToken cancellationToken)
+    {
+        var client = _httpClientFactory.CreateClient("Alojamientos");
+        var tasks = keys.Select(async id =>
+        {
+            try
+            {
+                var response = await client.GetAsync($"api/v1/Fotos/alojamiento/{id}", cancellationToken);
+                if (response.IsSuccessStatusCode)
+                {
+                    var list = await response.Content.ReadFromJsonAsync<List<FotoInternalResponse>>(cancellationToken: cancellationToken);
+                    return (id, list ?? new());
+                }
+            }
+            catch
+            {
+                // Ignorar error y retornar lista vacia
+            }
+            return (id, new List<FotoInternalResponse>());
+        });
+
+        var results = await Task.WhenAll(tasks);
+        return results.ToDictionary(x => x.id, x => x.Item2);
     }
 }

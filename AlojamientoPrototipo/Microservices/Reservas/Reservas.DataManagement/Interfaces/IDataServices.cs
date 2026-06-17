@@ -6,6 +6,7 @@ public interface IReservasDataService
 {
     Task<ReservaDataModel?> GetByIdAsync(int id);
     Task<IEnumerable<ReservaDataModel>> GetByClienteIdAsync(int clienteId);
+    Task<IEnumerable<ReservaDataModel>> GetAllAsync();
     Task<ReservaDataModel> CreateAsync(ReservaDataModel model);
     Task UpdateStatusAsync(int id, string nuevoEstado);
     Task DeleteAsync(int id);

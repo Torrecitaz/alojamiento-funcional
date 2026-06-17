@@ -22,4 +22,13 @@ public class BookingHub : Hub
         _logger.LogInformation("🔌 Cliente desconectado del Hub de SignalR: {ConnectionId}, Error: {Error}", Context.ConnectionId, exception?.Message);
         await base.OnDisconnectedAsync(exception);
     }
+
+    public async Task JoinGroup(string groupName)
+    {
+        if (!string.IsNullOrEmpty(groupName))
+        {
+            await Groups.AddToGroupAsync(Context.ConnectionId, groupName);
+            _logger.LogInformation("🔌 Cliente {ConnectionId} se unió al grupo: {GroupName}", Context.ConnectionId, groupName);
+        }
+    }
 }

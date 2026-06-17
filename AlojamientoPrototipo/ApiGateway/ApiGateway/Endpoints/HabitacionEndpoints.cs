@@ -19,7 +19,7 @@ public static class HabitacionEndpoints
     public static void MapHabitacionEndpoints(this IEndpointRouteBuilder app)
     {
         // 4. Consultar habitaciones disponibles por fechas
-        app.MapGet("/api/alojamientos/{id:int}/disponibilidad", async (
+        app.MapGet("/api/v1/alojamientos/{id:int}/disponibilidad", async (
             int id,
             IHttpClientFactory httpClientFactory,
             [FromQuery] string fechaDesde,

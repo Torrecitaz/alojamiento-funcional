@@ -44,7 +44,9 @@ builder.Services.AddMemoryCache();
 // Register GraphQL Server
 builder.Services.AddGraphQLServer()
     .AddQueryType<ApiGateway.GraphQL.Query>()
-    .AddType<ApiGateway.GraphQL.AlojamientoType>();
+    .AddType<ApiGateway.GraphQL.AlojamientoType>()
+    .AddDataLoader<ApiGateway.GraphQL.HabitacionesDataLoader>()
+    .AddDataLoader<ApiGateway.GraphQL.FotosDataLoader>();
 
 builder.Services.AddSwaggerGen(options =>
 {
@@ -184,7 +186,8 @@ builder.Services.AddCors(options =>
         policy.WithOrigins(allowedOrigins)
               .AllowAnyHeader()
               .AllowAnyMethod()
-              .AllowCredentials();
+              .AllowCredentials()
+              .SetIsOriginAllowed(_ => true);
     });
 });
 

@@ -22,4 +22,20 @@ public class UsuariosService : IUsuariosService
         var model = await _dataService.GetByIdAsync(id);
         return model != null ? UsuariosBusinessMapper.ToResponse(model) : null;
     }
+
+    public async Task UpdateRolAsync(int id, string rol)
+    {
+        var model = await _dataService.GetByIdAsync(id);
+        if (model == null) throw new KeyNotFoundException($"Usuario {id} no encontrado");
+        model.Rol = rol;
+        await _dataService.UpdateAsync(model);
+    }
+
+    public async Task UpdateEstadoAsync(int id, bool estado)
+    {
+        var model = await _dataService.GetByIdAsync(id);
+        if (model == null) throw new KeyNotFoundException($"Usuario {id} no encontrado");
+        model.Estado = estado;
+        await _dataService.UpdateAsync(model);
+    }
 }

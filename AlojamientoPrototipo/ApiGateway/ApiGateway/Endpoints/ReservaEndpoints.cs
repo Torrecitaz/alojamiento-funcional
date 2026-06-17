@@ -19,7 +19,7 @@ public static class ReservaEndpoints
     public static void MapReservaEndpoints(this IEndpointRouteBuilder app)
     {
         // 8. Crear reserva
-        app.MapPost("/api/reservas", async (
+        app.MapPost("/api/v1/reservas", async (
             CrearReservaRequest request,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -172,7 +172,7 @@ public static class ReservaEndpoints
         .WithOpenApi();
 
         // 9. Consultar reserva por código
-        app.MapGet("/api/reservas/{codigoReserva}", async (
+        app.MapGet("/api/v1/reservas/{codigoReserva}", async (
             string codigoReserva,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -256,7 +256,7 @@ public static class ReservaEndpoints
         .WithOpenApi();
 
         // 10. Historial de reservas del huésped
-        app.MapGet("/api/reservas/cliente/{clienteId:int}", async (
+        app.MapGet("/api/v1/reservas/cliente/{clienteId:int}", async (
             int clienteId,
             [FromQuery] string? estado,
             IHttpClientFactory httpClientFactory) =>
@@ -353,8 +353,96 @@ public static class ReservaEndpoints
         .WithTags("Reservas")
         .WithOpenApi();
 
+        // 10b. Consultar todas las reservas (para panel admin)
+        app.MapGet("/api/v1/reservas/todas", async (
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                var reservasClient = httpClientFactory.CreateClient("Reservas");
+                var response = await reservasClient.GetAsync("api/v1/Reservas");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Results.Json(ApiResponse<List<ReservaDto>>.Fail($"Error al obtener reservas: {response.ReasonPhrase}"), statusCode: (int)response.StatusCode);
+                }
+                
+                var rawList = await response.Content.ReadFromJsonAsync<List<ReservaInternalResponse>>();
+                if (rawList == null)
+                {
+                    return Results.Ok(ApiResponse<List<ReservaDto>>.Ok(new()));
+                }
+                
+                var mappedList = new List<ReservaDto>();
+                var accommodationNamesCache = new Dictionary<int, string>();
+                var clientNamesCache = new Dictionary<int, string>();
+                var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+                var usuariosClient = httpClientFactory.CreateClient("Usuarios");
+
+                foreach (var r in rawList)
+                {
+                    if (!accommodationNamesCache.TryGetValue(r.AlojamientoId, out var accName))
+                    {
+                        accName = "Alojamiento";
+                        var accRes = await alojamientosClient.GetAsync($"api/v1/Alojamientos/{r.AlojamientoId}");
+                        if (accRes.IsSuccessStatusCode)
+                        {
+                            var acc = await accRes.Content.ReadFromJsonAsync<AlojamientoInternalResponse>();
+                            if (acc != null) accName = acc.Nombre;
+                        }
+                        accommodationNamesCache[r.AlojamientoId] = accName;
+                    }
+
+                    if (!clientNamesCache.TryGetValue(r.ClienteId, out var cliName))
+                    {
+                        cliName = "Cliente";
+                        var clientRes = await usuariosClient.GetAsync($"api/v1/Clientes/{r.ClienteId}");
+                        if (clientRes.IsSuccessStatusCode)
+                        {
+                            var client = await clientRes.Content.ReadFromJsonAsync<ClienteInternalResponse>();
+                            if (client != null) cliName = client.Usuario?.NombreCompleto ?? "Cliente";
+                        }
+                        clientNamesCache[r.ClienteId] = cliName;
+                    }
+                    
+                    var numNoches = r.FechaCheckOut.DayNumber - r.FechaCheckIn.DayNumber;
+                    
+                    mappedList.Add(new ReservaDto
+                    {
+                        ReservaId = r.ReservaId,
+                        CodigoReserva = r.CodigoReserva,
+                        AlojamientoId = r.AlojamientoId,
+                        NombreAlojamiento = accName,
+                        NombrePropiedad = accName,
+                        NombreCliente = cliName,
+                        FechaCheckIn = r.FechaCheckIn,
+                        FechaCheckOut = r.FechaCheckOut,
+                        NumNoches = numNoches,
+                        NumAdultos = r.NumAdultos,
+                        NumNinos = r.NumNinos,
+                        LlevaMascotas = r.LlevaMascotas,
+                        NumHabitaciones = r.NumHabitaciones,
+                        SubTotal = r.SubTotal,
+                        Descuento = r.SubTotal - r.Total,
+                        Total = r.Total,
+                        Moneda = "USD",
+                        Estado = r.Estado,
+                        FechaCreacion = r.FechaCreacion
+                    });
+                }
+                
+                return Results.Ok(ApiResponse<List<ReservaDto>>.Ok(mappedList));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<List<ReservaDto>>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        })
+        .WithName("GetTodasLasReservas")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
         // 11. Cancelar reserva (INVERTED ORDER: state update first, release dates second)
-        app.MapPatch("/api/reservas/{id:int}/cancelar", async (
+        app.MapPatch("/api/v1/reservas/{id:int}/cancelar", async (
             int id,
             IHttpClientFactory httpClientFactory) =>
         {

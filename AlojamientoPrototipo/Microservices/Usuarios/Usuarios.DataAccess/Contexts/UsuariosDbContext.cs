@@ -11,6 +11,7 @@ public class UsuariosDbContext : DbContext
     public DbSet<LocalizacionEntity> Localizaciones { get; set; } = null!;
     public DbSet<UsuarioEntity> Usuarios { get; set; } = null!;
     public DbSet<ClienteEntity> Clientes { get; set; } = null!;
+    public DbSet<ColaboradorEntity> Colaboradores { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -18,5 +19,6 @@ public class UsuariosDbContext : DbContext
         modelBuilder.ApplyConfiguration(new UsuariosConfiguration());
         modelBuilder.ApplyConfiguration(new ClientesConfiguration());
         modelBuilder.ApplyConfiguration(new LocalizacionesConfiguration());
+        modelBuilder.ApplyConfiguration(new ColaboradoresConfiguration());
     }
 }

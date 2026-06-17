@@ -16,18 +16,21 @@ public static class ServiceCollectionExtensions
         services.AddScoped<IUsuariosRepository, UsuariosRepository>();
         services.AddScoped<IClientesRepository, ClientesRepository>();
         services.AddScoped<ILocalizacionesRepository, LocalizacionesRepository>();
+        services.AddScoped<IColaboradoresRepository, ColaboradoresRepository>();
 
         // ── DataManagement ──────────────────────────────
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IUsuariosDataService, UsuariosDataService>();
         services.AddScoped<IClientesDataService, ClientesDataService>();
         services.AddScoped<ILocalizacionesDataService, LocalizacionesDataService>();
+        services.AddScoped<IColaboradoresDataService, ColaboradoresDataService>();
 
         // ── Business ────────────────────────────────────
         services.AddScoped<IUsuariosService, UsuariosService>();
         services.AddScoped<IClientesService, ClientesService>();
         services.AddScoped<IAuthService, AuthService>();
         services.AddScoped<ILocalizacionesService, LocalizacionesService>();
+        services.AddScoped<IColaboradoresService, ColaboradoresService>();
 
         return services;
     }

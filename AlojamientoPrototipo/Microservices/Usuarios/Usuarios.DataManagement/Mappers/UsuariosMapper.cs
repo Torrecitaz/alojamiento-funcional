@@ -22,5 +22,6 @@ public static class UsuariosMapper
         entity.NombreCompleto = model.NombreCompleto;
         entity.Email = model.Email;
         entity.Estado = model.Estado;
+        entity.Rol = model.Rol;
     }
 }

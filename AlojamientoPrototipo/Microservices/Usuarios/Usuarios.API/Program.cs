@@ -49,6 +49,9 @@ app.UseSwaggerUI();
 // CORS
 app.UseCors();
 
+// Seed de Base de Datos
+app.SeedDatabase();
+
 // Mapeo de Controladores
 app.MapControllers();
 

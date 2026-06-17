@@ -19,7 +19,9 @@ public class ReservaCreatedConsumer : IConsumer<ReservaCreatedEvent>
     public async Task Consume(ConsumeContext<ReservaCreatedEvent> context)
     {
         _logger.LogInformation("📢 Consumiendo ReservaCreatedEvent: {CodigoReserva}", context.Message.CodigoReserva);
-        await _hubContext.Clients.All.SendAsync("OnReservaCreated", context.Message);
+        await _hubContext.Clients.Group($"cliente_{context.Message.ClienteId}").SendAsync("OnReservaCreated", context.Message);
+        await _hubContext.Clients.Group("role_Administrador").SendAsync("OnReservaCreated", context.Message);
+        await _hubContext.Clients.Group("role_Colaborador").SendAsync("OnReservaCreated", context.Message);
     }
 }
 
@@ -37,7 +39,9 @@ public class ReservaConfirmedConsumer : IConsumer<ReservaConfirmedEvent>
     public async Task Consume(ConsumeContext<ReservaConfirmedEvent> context)
     {
         _logger.LogInformation("📢 Consumiendo ReservaConfirmedEvent: {CodigoReserva}", context.Message.CodigoReserva);
-        await _hubContext.Clients.All.SendAsync("OnReservaConfirmed", context.Message);
+        await _hubContext.Clients.Group($"cliente_{context.Message.ClienteId}").SendAsync("OnReservaConfirmed", context.Message);
+        await _hubContext.Clients.Group("role_Administrador").SendAsync("OnReservaConfirmed", context.Message);
+        await _hubContext.Clients.Group("role_Colaborador").SendAsync("OnReservaConfirmed", context.Message);
     }
 }
 
@@ -55,7 +59,9 @@ public class ReservaCancelledConsumer : IConsumer<ReservaCancelledEvent>
     public async Task Consume(ConsumeContext<ReservaCancelledEvent> context)
     {
         _logger.LogInformation("📢 Consumiendo ReservaCancelledEvent: {CodigoReserva}", context.Message.CodigoReserva);
-        await _hubContext.Clients.All.SendAsync("OnReservaCancelled", context.Message);
+        await _hubContext.Clients.Group($"cliente_{context.Message.ClienteId}").SendAsync("OnReservaCancelled", context.Message);
+        await _hubContext.Clients.Group("role_Administrador").SendAsync("OnReservaCancelled", context.Message);
+        await _hubContext.Clients.Group("role_Colaborador").SendAsync("OnReservaCancelled", context.Message);
     }
 }
 
@@ -93,6 +99,7 @@ public class AlojamientoEstadoChangedConsumer : IConsumer<AlojamientoEstadoChang
     {
         _logger.LogInformation("📢 Consumiendo AlojamientoEstadoChangedEvent: Alojamiento={AlojamientoId}, Estado={Estado}", 
             context.Message.AlojamientoId, context.Message.Estado);
-        await _hubContext.Clients.All.SendAsync("OnAlojamientoEstadoChanged", context.Message);
+        await _hubContext.Clients.Group("role_Administrador").SendAsync("OnAlojamientoEstadoChanged", context.Message);
+        await _hubContext.Clients.Group("role_Colaborador").SendAsync("OnAlojamientoEstadoChanged", context.Message);
     }
 }

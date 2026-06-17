@@ -43,6 +43,12 @@ public class ReservasService : IReservasService
         return reservas.Select(ReservasBusinessMapper.ToResponse);
     }
 
+    public async Task<IEnumerable<ReservaResponse>> GetAllAsync()
+    {
+        var reservas = await _reservasDataService.GetAllAsync();
+        return reservas.Select(ReservasBusinessMapper.ToResponse);
+    }
+
     public async Task<IEnumerable<ReservaResumenResponse>> GetResumenByClienteIdAsync(int clienteId)
     {
         var reservas = await _reservasDataService.GetByClienteIdAsync(clienteId);
@@ -173,6 +179,7 @@ public class ReservasService : IReservasService
             {
                 ReservaId = existing.ReservaId,
                 CodigoReserva = existing.CodigoReserva,
+                ClienteId = existing.ClienteId,
                 AlojamientoId = existing.AlojamientoId,
                 FechaCheckIn = existing.FechaCheckIn,
                 FechaCheckOut = existing.FechaCheckOut
@@ -184,6 +191,7 @@ public class ReservasService : IReservasService
             {
                 ReservaId = existing.ReservaId,
                 CodigoReserva = existing.CodigoReserva,
+                ClienteId = existing.ClienteId,
                 AlojamientoId = existing.AlojamientoId
             });
         }

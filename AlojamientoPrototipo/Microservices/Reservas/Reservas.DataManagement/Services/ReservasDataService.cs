@@ -24,6 +24,12 @@ public class ReservasDataService : IReservasDataService
         return entities.OrderByDescending(r => r.FechaCreacion).Select(ReservasMapper.ToDataModel);
     }
 
+    public async Task<IEnumerable<ReservaDataModel>> GetAllAsync()
+    {
+        var entities = await _repo.GetAllAsync();
+        return entities.OrderByDescending(r => r.FechaCreacion).Select(ReservasMapper.ToDataModel);
+    }
+
     public async Task<ReservaDataModel> CreateAsync(ReservaDataModel model)
     {
         var entity = new ReservaEntity
