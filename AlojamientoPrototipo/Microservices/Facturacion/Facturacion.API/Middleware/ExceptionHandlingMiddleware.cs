@@ -4,13 +4,20 @@ using Microsoft.AspNetCore.Http;
 using Facturacion.API.Models.Common;
 using Facturacion.Business.Exceptions;
 
+using Microsoft.Extensions.Logging;
+
 namespace Facturacion.API.Middleware;
 
 public class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
+    private readonly ILogger<ExceptionHandlingMiddleware> _logger;
 
-    public ExceptionHandlingMiddleware(RequestDelegate next) => _next = next;
+    public ExceptionHandlingMiddleware(RequestDelegate next, ILogger<ExceptionHandlingMiddleware> logger)
+    {
+        _next = next;
+        _logger = logger;
+    }
 
     public async Task InvokeAsync(HttpContext context)
     {
@@ -20,6 +27,7 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Unhandled exception on {Method} {Path}", context.Request.Method, context.Request.Path);
             await HandleExceptionAsync(context, ex);
         }
     }
@@ -34,9 +42,26 @@ public class ExceptionHandlingMiddleware
             _ => HttpStatusCode.InternalServerError
         };
 
+        var innerEx = exception.InnerException;
+        var innerMsg = innerEx?.Message;
+        if (innerEx != null)
+        {
+            var detailProp = innerEx.GetType().GetProperty("Detail");
+            if (detailProp != null)
+            {
+                var detailVal = detailProp.GetValue(innerEx) as string;
+                if (!string.IsNullOrEmpty(detailVal))
+                {
+                    innerMsg += $" | Detail: {detailVal}";
+                }
+            }
+        }
+
         var response = new ApiErrorResponse(
             message: exception.Message,
-            details: statusCode == HttpStatusCode.InternalServerError ? "Ocurrió un error interno en el servidor." : null
+            details: statusCode == HttpStatusCode.InternalServerError
+                ? (innerMsg != null ? $"Inner: {innerMsg}" : "Ocurrió un error interno en el servidor.")
+                : null
         );
 
         context.Response.ContentType = "application/json";

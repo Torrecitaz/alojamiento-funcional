@@ -38,13 +38,14 @@ public class CalendarioGrpcService : CalendarioGrpc.CalendarioGrpcBase
             }
             catch (Exception ex)
             {
-                _logger.LogWarning("Disponibilidad no confirmada para Habitación {HabitacionId} en [{Inicio} - {Fin}]: {Msg}", 
-                    request.HabitacionId, request.FechaInicio, request.FechaFin, ex.Message);
-                
+                _logger.LogWarning(ex, "Disponibilidad no confirmada para Habitación {HabitacionId} en [{Inicio} - {Fin}]",
+                    request.HabitacionId, request.FechaInicio, request.FechaFin);
+
+                var innerMsg = ex.InnerException?.Message ?? ex.InnerException?.InnerException?.Message;
                 return new DisponibilidadResponse
                 {
                     Disponible = false,
-                    Mensaje = $"Las fechas seleccionadas ya no están disponibles: {ex.Message}"
+                    Mensaje = $"Las fechas seleccionadas ya no están disponibles: {ex.Message}{(innerMsg != null ? $" | Inner: {innerMsg}" : "")}"
                 };
             }
 
