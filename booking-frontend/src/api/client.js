@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v2';
-const client = axios.create({ baseURL: BASE_URL, timeout: 15000 });
+const client = axios.create({ baseURL: BASE_URL, timeout: 45000 });
 
 // Inyectar JWT en cada request
 client.interceptors.request.use((config) => {

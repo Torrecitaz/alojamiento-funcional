@@ -54,15 +54,12 @@ export default function PropiedadDetallePage() {
     try {
       const payload = {
         clienteId: user.clienteId || parseInt(user.id),
-        propiedadId: parseInt(id),
-        habitacionIds: [parseInt(selectedHabitacion)],
+        habitacionId: parseInt(selectedHabitacion),
         fechaCheckIn: checkIn,
         fechaCheckOut: checkOut,
         numAdultos: parseInt(adultos),
         numNinos: parseInt(ninos),
-        llevaMascotas: mascotas,
-        monedaId: 1, 
-        metodoPagoId: 1 
+        llevaMascotas: mascotas
       };
 
       const result = await reservasApi.crear(payload);
