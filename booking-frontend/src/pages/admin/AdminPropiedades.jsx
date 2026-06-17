@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineOfficeBuilding, HiOutlineLocationMarker, HiOutlinePhotograph, HiOutlineX } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { alojamientosApi } from '../../api/alojamientos.api';
+import { colaboradoresApi } from '../../api/colaboradores.api';
 import useAuthStore from '../../store/useAuthStore';
 import './AdminLayout.css';
 
@@ -46,10 +47,10 @@ export default function AdminPropiedades() {
     setLoading(true);
     try {
       const [propRes, ciudRes, tipoRes, colabRes] = await Promise.allSettled([
-        esAdmin ? api.get('/propiedades/buscar') : api.get(`/propiedades/colaborador/${user?.colaboradorId}`),
-        api.get('/maestros/ciudades'),
-        api.get('/maestros/tipos-alojamiento'),
-        esAdmin ? api.get('/colaboradores') : Promise.resolve({ data: { datos: [] } })
+        esAdmin ? alojamientosApi.buscar() : alojamientosApi.getByColaboradorId(user?.colaboradorId),
+        alojamientosApi.getCiudades(),
+        alojamientosApi.getTiposAlojamiento(),
+        esAdmin ? colaboradoresApi.getAll() : Promise.resolve({ data: { datos: [] } })
       ]);
 
       if (propRes.status === 'fulfilled') {
@@ -87,10 +88,10 @@ export default function AdminPropiedades() {
       };
 
       if (editingId) {
-        await api.put(`/propiedades/${editingId}`, payload);
+        await alojamientosApi.actualizar(editingId, payload);
         toast.success('Propiedad actualizada exitosamente.');
       } else {
-        await api.post('/propiedades', payload);
+        await alojamientosApi.crear(payload);
         toast.success('Propiedad creada exitosamente.');
       }
       
@@ -129,7 +130,7 @@ export default function AdminPropiedades() {
   const handleDuplicate = async (id) => {
     const loadingToast = toast.loading('Duplicando propiedad y habitaciones...');
     try {
-      await api.post(`/propiedades/duplicar/${id}`);
+      await alojamientosApi.duplicar(id);
       toast.success('Propiedad duplicada exitosamente.', { id: loadingToast });
       loadData();
     } catch (err) {
@@ -139,7 +140,7 @@ export default function AdminPropiedades() {
 
   const loadFotos = async (propiedadId) => {
     try {
-      const { data } = await api.get(`/propiedades/${propiedadId}`);
+      const { data } = await alojamientosApi.getById(propiedadId);
       setFotosGaleria(data.datos?.fotos || []);
     } catch {
       toast.error('Error al cargar fotos de la galería.');
@@ -162,9 +163,7 @@ export default function AdminPropiedades() {
 
     const loadingToast = toast.loading('Subiendo imagen a la galería...');
     try {
-      await api.post(`/propiedades/${activeGaleriaId}/fotos`, formDataPayload, {
-        headers: { 'Content-Type': 'multipart/form-data' }
-      });
+      await alojamientosApi.agregarFoto(activeGaleriaId, formDataPayload);
       toast.success('Imagen subida exitosamente.', { id: loadingToast });
       loadFotos(activeGaleriaId);
     } catch (err) {
@@ -177,7 +176,7 @@ export default function AdminPropiedades() {
   const toggleEstado = async (id, estadoActual) => {
     const nuevoEstado = estadoActual === 'Activa' ? 'Inactiva' : 'Activa';
     try {
-      await api.patch(`/propiedades/${id}/estado`, { nuevoEstado });
+      await alojamientosApi.actualizarEstado(id, nuevoEstado);
       toast.success(`Propiedad marcada como ${nuevoEstado}`);
       loadData();
     } catch {

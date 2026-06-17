@@ -18,8 +18,8 @@ public static class PropiedadesEndpoints
 {
     public static void MapPropiedadesEndpoints(this IEndpointRouteBuilder app)
     {
-        // 1. Buscar alojamientos
-        app.MapGet("/api/alojamientos", async (
+        // 1. Buscar alojamientos (API pública con DTO unificado)
+        var buscarAlojamientosHandler = async (
             IHttpClientFactory httpClientFactory,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -117,13 +117,20 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<List<AlojamientoDto>>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/alojamientos", buscarAlojamientosHandler)
         .WithName("BuscarAlojamientos")
         .WithTags("Alojamientos")
         .WithOpenApi();
 
+        app.MapGet("/api/v2/alojamientos-alojaexpress", buscarAlojamientosHandler)
+        .WithName("BuscarAlojamientos_V2")
+        .WithTags("Alojamientos")
+        .WithOpenApi();
+
         // 2. Detalle completo de un alojamiento
-        app.MapGet("/api/alojamientos/{id:int}", async (int id, IHttpClientFactory httpClientFactory) =>
+        var getAlojamientoDetalleHandler = async (int id, IHttpClientFactory httpClientFactory) =>
         {
             try
             {
@@ -202,13 +209,20 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<AlojamientoDetalleDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/alojamientos/{id:int}", getAlojamientoDetalleHandler)
         .WithName("GetAlojamientoDetalle")
         .WithTags("Alojamientos")
         .WithOpenApi();
 
+        app.MapGet("/api/v2/alojamientos-alojaexpress/{id:int}", getAlojamientoDetalleHandler)
+        .WithName("GetAlojamientoDetalle_V2")
+        .WithTags("Alojamientos")
+        .WithOpenApi();
+
         // 3. Tipos de alojamiento disponibles
-        app.MapGet("/api/alojamientos/tipos", async (IHttpClientFactory httpClientFactory) =>
+        var getTiposAlojamientoHandler = async (IHttpClientFactory httpClientFactory) =>
         {
             try
             {
@@ -238,15 +252,20 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<List<TipoAlojamientoDto>>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/alojamientos/tipos", getTiposAlojamientoHandler)
         .WithName("GetTiposAlojamiento")
         .WithTags("Alojamientos")
         .WithOpenApi();
 
-        // ──────────────────────────────────────────────────────────────────────────
-        // ENDPOINTS DE COMPATIBILIDAD CON FRONTEND (AlojaExpress)
-        // ──────────────────────────────────────────────────────────────────────────
-        app.MapGet("/api/v1/maestros/ciudades", () =>
+        app.MapGet("/api/v2/alojamientos-alojaexpress/tipos", getTiposAlojamientoHandler)
+        .WithName("GetTiposAlojamiento_V2")
+        .WithTags("Alojamientos")
+        .WithOpenApi();
+
+        // 4. Maestros - Ciudades
+        var maestrosCiudadesHandler = () =>
         {
             var ciudades = new[]
             {
@@ -256,9 +275,13 @@ public static class PropiedadesEndpoints
                 new { ciudadId = 4, nombre = "Manta", pais = "Ecuador" }
             };
             return Results.Ok(ApiResponse<object>.Ok(ciudades));
-        });
+        };
 
-        app.MapGet("/api/v1/maestros/tipos-alojamiento", async (IHttpClientFactory httpClientFactory) =>
+        app.MapGet("/api/v1/maestros/ciudades", maestrosCiudadesHandler);
+        app.MapGet("/api/v2/alojamientos-alojaexpress/ciudades", maestrosCiudadesHandler);
+
+        // 5. Maestros - Tipos Alojamiento (Raw response)
+        var maestrosTiposAlojamientoHandler = async (IHttpClientFactory httpClientFactory) =>
         {
             try
             {
@@ -275,9 +298,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapGet("/api/v1/propiedades/buscar", async (
+        app.MapGet("/api/v1/maestros/tipos-alojamiento", maestrosTiposAlojamientoHandler);
+        app.MapGet("/api/v2/alojamientos-alojaexpress/tipos-alojamiento", maestrosTiposAlojamientoHandler);
+
+        // 6. Buscar propiedades (Filtros detallados del panel administrativo/cliente)
+        var propiedadesBuscarHandler = async (
             IHttpClientFactory httpClientFactory,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
@@ -379,9 +406,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapGet("/api/v1/propiedades/colaborador/{colaboradorId:int}", async (
+        app.MapGet("/api/v1/propiedades/buscar", propiedadesBuscarHandler);
+        app.MapGet("/api/v2/alojamientos-alojaexpress/buscar", propiedadesBuscarHandler);
+
+        // 7. Propiedades por Colaborador
+        var propiedadesColaboradorHandler = async (
             int colaboradorId,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -451,9 +482,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapGet("/api/v1/propiedades/{id:int}", async (
+        app.MapGet("/api/v1/propiedades/colaborador/{colaboradorId:int}", propiedadesColaboradorHandler);
+        app.MapGet("/api/v2/alojamientos-alojaexpress/colaborador/{colaboradorId:int}", propiedadesColaboradorHandler);
+
+        // 8. Obtener Propiedad por ID (Formato extendido administrador)
+        var propiedadesGetByIdHandler = async (
             int id,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -517,9 +552,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapPost("/api/v1/propiedades", async (
+        app.MapGet("/api/v1/propiedades/{id:int}", propiedadesGetByIdHandler);
+        app.MapGet("/api/v2/alojamientos-alojaexpress/por-id/{id:int}", propiedadesGetByIdHandler);
+
+        // 9. Crear Propiedad
+        var crearPropiedadHandler = async (
             JsonElement payload,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -574,12 +613,20 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapPost("/api/v1/propiedades", crearPropiedadHandler)
         .WithName("CrearPropiedad")
         .WithTags("Alojamientos")
         .WithOpenApi();
 
-        app.MapPut("/api/v1/propiedades/{id:int}", async (
+        app.MapPost("/api/v2/alojamientos-alojaexpress", crearPropiedadHandler)
+        .WithName("CrearPropiedad_V2")
+        .WithTags("Alojamientos")
+        .WithOpenApi();
+
+        // 10. Actualizar Propiedad
+        var actualizarPropiedadHandler = async (
             int id,
             JsonElement payload,
             IHttpClientFactory httpClientFactory) =>
@@ -600,9 +647,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapPost("/api/v1/propiedades/duplicar/{id:int}", async (
+        app.MapPut("/api/v1/propiedades/{id:int}", actualizarPropiedadHandler);
+        app.MapPut("/api/v2/alojamientos-alojaexpress/{id:int}", actualizarPropiedadHandler);
+
+        // 11. Duplicar Propiedad
+        var duplicarPropiedadHandler = async (
             int id,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -697,9 +748,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapPatch("/api/v1/propiedades/{id:int}/estado", async (
+        app.MapPost("/api/v1/propiedades/duplicar/{id:int}", duplicarPropiedadHandler);
+        app.MapPost("/api/v2/alojamientos-alojaexpress/duplicar/{id:int}", duplicarPropiedadHandler);
+
+        // 12. Actualizar Estado Propiedad
+        var estadoPropiedadHandler = async (
             int id,
             JsonElement payload,
             IHttpClientFactory httpClientFactory) =>
@@ -765,9 +820,13 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapPost("/api/v1/propiedades/{id:int}/fotos", async (
+        app.MapPatch("/api/v1/propiedades/{id:int}/estado", estadoPropiedadHandler);
+        app.MapPatch("/api/v2/alojamientos-alojaexpress/{id:int}/estado", estadoPropiedadHandler);
+
+        // 13. Subir Fotos Propiedad
+        var fotosPropiedadHandler = async (
             int id,
             HttpRequest request,
             Shared.Kernel.Services.ICloudinaryService cloudinaryService,
@@ -820,6 +879,10 @@ public static class PropiedadesEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
+
+        app.MapPost("/api/v1/propiedades/{id:int}/fotos", fotosPropiedadHandler);
+        app.MapPost("/api/v2/alojamientos-alojaexpress/{id:int}/fotos", fotosPropiedadHandler);
+        app.MapPost("/api/v2/fotos-alojaexpress/alojamiento/{id:int}", fotosPropiedadHandler);
     }
 }

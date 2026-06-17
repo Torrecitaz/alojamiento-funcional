@@ -16,7 +16,7 @@ public static class FacturacionEndpoints
     public static void MapFacturacionEndpoints(this IEndpointRouteBuilder app)
     {
         // 12. Comprobante de pago de una reserva (Mapped with /api/v1/ prefix)
-        app.MapGet("/api/v1/facturas/reserva/{reservaId:int}", async (
+        var getFacturaByReservaHandler = async (
             int reservaId,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -71,13 +71,20 @@ public static class FacturacionEndpoints
             {
                 return Results.Json(ApiResponse<FacturaDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/v1/facturas/reserva/{reservaId:int}", getFacturaByReservaHandler)
         .WithName("GetFacturaByReserva")
         .WithTags("Facturación")
         .WithOpenApi();
 
+        app.MapGet("/api/v2/facturas-alojaexpress/reserva/{reservaId:int}", getFacturaByReservaHandler)
+        .WithName("GetFacturaByReserva_V2")
+        .WithTags("Facturación")
+        .WithOpenApi();
+
         // 13. Métodos de pago disponibles (Mapped with /api/v1/ prefix)
-        app.MapGet("/api/v1/facturas/metodos-pago", async (
+        var getMetodosPagoHandler = async (
             IHttpClientFactory httpClientFactory) =>
         {
             try
@@ -107,8 +114,15 @@ public static class FacturacionEndpoints
             {
                 return Results.Json(ApiResponse<List<MetodoPagoDto>>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/v1/facturas/metodos-pago", getMetodosPagoHandler)
         .WithName("GetMetodosPago")
+        .WithTags("Facturación")
+        .WithOpenApi();
+
+        app.MapGet("/api/v2/metodospago-alojaexpress", getMetodosPagoHandler)
+        .WithName("GetMetodosPago_V2")
         .WithTags("Facturación")
         .WithOpenApi();
     }

@@ -17,7 +17,7 @@ public static class UsuarioEndpoints
     public static void MapUsuarioEndpoints(this IEndpointRouteBuilder app)
     {
         // 5. Registrar nuevo huésped
-        app.MapPost("/api/usuarios/clientes/registrar", async (
+        var registrarClienteHandler = async (
             RegistrarClienteRequest request,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -56,13 +56,20 @@ public static class UsuarioEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapPost("/api/usuarios/clientes/registrar", registrarClienteHandler)
         .WithName("RegistrarCliente")
         .WithTags("Clientes")
         .WithOpenApi();
 
+        app.MapPost("/api/v2/clientes-alojaexpress/registrar", registrarClienteHandler)
+        .WithName("RegistrarCliente_V2")
+        .WithTags("Clientes")
+        .WithOpenApi();
+
         // 6. Buscar cliente por cédula
-        app.MapGet("/api/usuarios/clientes/cedula/{cedula}", async (
+        var getClienteByCedulaHandler = async (
             string cedula,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -103,13 +110,20 @@ public static class UsuarioEndpoints
             {
                 return Results.Json(ApiResponse<ClienteDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/usuarios/clientes/cedula/{cedula}", getClienteByCedulaHandler)
         .WithName("GetClienteByCedula")
         .WithTags("Clientes")
         .WithOpenApi();
 
+        app.MapGet("/api/v2/clientes-alojaexpress/cedula/{cedula}", getClienteByCedulaHandler)
+        .WithName("GetClienteByCedula_V2")
+        .WithTags("Clientes")
+        .WithOpenApi();
+
         // 7. Perfil del huésped
-        app.MapGet("/api/usuarios/clientes/{id:int}", async (
+        var getPerfilClienteHandler = async (
             int id,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -150,8 +164,15 @@ public static class UsuarioEndpoints
             {
                 return Results.Json(ApiResponse<ClienteDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/usuarios/clientes/{id:int}", getPerfilClienteHandler)
         .WithName("GetPerfilCliente")
+        .WithTags("Clientes")
+        .WithOpenApi();
+
+        app.MapGet("/api/v2/clientes-alojaexpress/{id:int}", getPerfilClienteHandler)
+        .WithName("GetPerfilCliente_V2")
         .WithTags("Clientes")
         .WithOpenApi();
     }

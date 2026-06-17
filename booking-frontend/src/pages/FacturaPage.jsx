@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { reservasApi } from '../api/reservas.api';
+import { facturasApi } from '../api/facturas.api';
 
 export default function FacturaPage() {
   const { codigo } = useParams();
@@ -12,12 +13,12 @@ export default function FacturaPage() {
   useEffect(() => {
     const fetchFacturaData = async () => {
       try {
-        const resData = await api.get(`/reservas/${codigo}`);
+        const resData = await reservasApi.getByCodigo(codigo);
         const reservaData = resData.data.datos;
         setReserva(reservaData);
 
         if (reservaData?.reservaId) {
-          const { data: factData } = await api.get(`/facturas/reserva/${reservaData.reservaId}`);
+          const { data: factData } = await facturasApi.getByReservaId(reservaData.reservaId);
           if (factData?.success && factData?.datos) {
             const f = factData.datos;
             setPagos([{

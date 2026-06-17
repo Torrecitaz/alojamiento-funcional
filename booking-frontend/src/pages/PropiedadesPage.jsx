@@ -3,7 +3,7 @@ import { useLocation, Link } from 'react-router-dom';
 import { HiOutlineStar, HiOutlineLocationMarker, HiOutlineSearch } from 'react-icons/hi';
 import { PawPrint } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { alojamientosApi } from '../api/alojamientos.api';
 import './PropiedadesPage.css';
 
 export default function PropiedadesPage() {
@@ -33,7 +33,7 @@ export default function PropiedadesPage() {
 
   const fetchCiudades = async () => {
     try {
-      const { data } = await api.get('/maestros/ciudades');
+      const { data } = await alojamientosApi.getCiudades();
       setCiudades(data.datos || []);
     } catch (err) {
       console.error('Error fetching ciudades', err);
@@ -43,16 +43,16 @@ export default function PropiedadesPage() {
   const fetchPropiedades = async () => {
     setLoading(true);
     try {
-      const params = new URLSearchParams();
-      if (ciudadFiltro) params.append('CiudadId', ciudadFiltro);
-      if (estrellasMinimas) params.append('EstrellasMinimas', estrellasMinimas);
-      if (admiteMascotas) params.append('AdmiteMascotas', 'true');
-      if (fechaCheckIn) params.append('FechaCheckIn', fechaCheckIn);
-      if (fechaCheckOut) params.append('FechaCheckOut', fechaCheckOut);
-      if (numAdultos) params.append('NumAdultos', numAdultos);
-      if (numNinos) params.append('NumNinos', numNinos);
+      const params = {};
+      if (ciudadFiltro) params.CiudadId = ciudadFiltro;
+      if (estrellasMinimas) params.EstrellasMinimas = estrellasMinimas;
+      if (admiteMascotas) params.AdmiteMascotas = 'true';
+      if (fechaCheckIn) params.FechaCheckIn = fechaCheckIn;
+      if (fechaCheckOut) params.FechaCheckOut = fechaCheckOut;
+      if (numAdultos) params.NumAdultos = numAdultos;
+      if (numNinos) params.NumNinos = numNinos;
 
-      const { data } = await api.get(`/propiedades/buscar?${params.toString()}`);
+      const { data } = await alojamientosApi.buscar(params);
       setPropiedades(data.datos?.items || []);
     } catch {
       toast.error('Error al cargar propiedades.');

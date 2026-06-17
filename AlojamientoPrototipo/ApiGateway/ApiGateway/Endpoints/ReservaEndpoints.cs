@@ -19,7 +19,7 @@ public static class ReservaEndpoints
     public static void MapReservaEndpoints(this IEndpointRouteBuilder app)
     {
         // 8. Crear reserva
-        app.MapPost("/api/v1/reservas", async (
+        var crearReservaHandler = async (
             CrearReservaRequest request,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -166,13 +166,25 @@ public static class ReservaEndpoints
             {
                 return Results.Json(ApiResponse<ReservaDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapPost("/api/reservas", crearReservaHandler)
         .WithName("CrearReserva")
         .WithTags("Reservas")
         .WithOpenApi();
 
+        app.MapPost("/api/v1/reservas", crearReservaHandler)
+        .WithName("CrearReserva_V1")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapPost("/api/v2/reservas-alojaexpress", crearReservaHandler)
+        .WithName("CrearReserva_V2")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
         // 9. Consultar reserva por código
-        app.MapGet("/api/v1/reservas/{codigoReserva}", async (
+        var getReservaByCodigoHandler = async (
             string codigoReserva,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -250,13 +262,25 @@ public static class ReservaEndpoints
             {
                 return Results.Json(ApiResponse<ReservaDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/reservas/{codigoReserva}", getReservaByCodigoHandler)
         .WithName("GetReservaByCodigo")
         .WithTags("Reservas")
         .WithOpenApi();
 
+        app.MapGet("/api/v1/reservas/{codigoReserva}", getReservaByCodigoHandler)
+        .WithName("GetReservaByCodigo_V1")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapGet("/api/v2/reservas-alojaexpress/{codigoReserva}", getReservaByCodigoHandler)
+        .WithName("GetReservaByCodigo_V2")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
         // 10. Historial de reservas del huésped
-        app.MapGet("/api/v1/reservas/cliente/{clienteId:int}", async (
+        var getReservasByClienteHandler = async (
             int clienteId,
             [FromQuery] string? estado,
             IHttpClientFactory httpClientFactory) =>
@@ -348,8 +372,20 @@ public static class ReservaEndpoints
             {
                 return Results.Json(ApiResponse<List<ReservaDto>>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapGet("/api/reservas/cliente/{clienteId:int}", getReservasByClienteHandler)
         .WithName("GetReservasByCliente")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapGet("/api/v1/reservas/cliente/{clienteId:int}", getReservasByClienteHandler)
+        .WithName("GetReservasByCliente_V1")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapGet("/api/v2/reservas-alojaexpress/cliente/{clienteId:int}", getReservasByClienteHandler)
+        .WithName("GetReservasByCliente_V2")
         .WithTags("Reservas")
         .WithOpenApi();
 
@@ -441,8 +477,8 @@ public static class ReservaEndpoints
         .WithTags("Reservas")
         .WithOpenApi();
 
-        // 11. Cancelar reserva (INVERTED ORDER: state update first, release dates second)
-        app.MapPatch("/api/v1/reservas/{id:int}/cancelar", async (
+        // 11. Cancelar reserva (Legacy API)
+        var cancelarReservaHandler = async (
             int id,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -498,8 +534,20 @@ public static class ReservaEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapPatch("/api/reservas/{id:int}/cancelar", cancelarReservaHandler)
         .WithName("CancelarReserva")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapPatch("/api/v1/reservas/{id:int}/cancelar", cancelarReservaHandler)
+        .WithName("CancelarReserva_V1")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapPatch("/api/v2/reservas-alojaexpress/{id:int}/cancelar", cancelarReservaHandler)
+        .WithName("CancelarReserva_V2")
         .WithTags("Reservas")
         .WithOpenApi();
 
@@ -660,6 +708,106 @@ public static class ReservaEndpoints
         })
         .WithName("CrearReservaV2")
         .WithTags("Reservas V2")
+        .WithOpenApi();
+
+        // 12. Actualizar estado de la reserva (New API matching contract state patch)
+        var updateEstadoHandler = async (
+            int id,
+            JsonElement payload,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                var root = payload.Clone();
+                string? nuevoEstado = null;
+                if (root.TryGetProperty("nuevoEstado", out var neProp))
+                {
+                    nuevoEstado = neProp.GetString();
+                }
+                else if (root.TryGetProperty("estado", out var eProp))
+                {
+                    nuevoEstado = eProp.GetString();
+                }
+
+                if (string.IsNullOrEmpty(nuevoEstado))
+                {
+                    return Results.Json(ApiResponse<object>.Fail("El estado es requerido."), statusCode: 400);
+                }
+
+                var reservasClient = httpClientFactory.CreateClient("Reservas");
+                
+                if (nuevoEstado.Equals("Cancelada", StringComparison.OrdinalIgnoreCase))
+                {
+                    var resResponse = await reservasClient.GetAsync($"api/v1/Reservas/{id}");
+                    if (resResponse.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    {
+                        return Results.Json(ApiResponse<object>.Fail("Reserva no encontrada."), statusCode: 404);
+                    }
+                    if (!resResponse.IsSuccessStatusCode)
+                    {
+                        return Results.Json(ApiResponse<object>.Fail($"Error al buscar reserva: {resResponse.ReasonPhrase}"), statusCode: (int)resResponse.StatusCode);
+                    }
+                    
+                    var reservation = await resResponse.Content.ReadFromJsonAsync<ReservaInternalResponse>();
+                    if (reservation == null)
+                    {
+                        return Results.Json(ApiResponse<object>.Fail("Reserva no encontrada."), statusCode: 404);
+                    }
+                    
+                    var statusReq = new { estado = "Cancelada" };
+                    var patchResponse = await reservasClient.PatchAsJsonAsync($"api/v1/Reservas/{id}/estado", statusReq);
+                    
+                    if (!patchResponse.IsSuccessStatusCode)
+                    {
+                        var errContent = await patchResponse.Content.ReadAsStringAsync();
+                        return Results.Json(ApiResponse<object>.Fail($"Error al actualizar estado en el microservicio: {errContent}"), statusCode: (int)patchResponse.StatusCode);
+                    }
+
+                    var alojamientosClient = httpClientFactory.CreateClient("Alojamientos");
+                    var fechaFinExclusiva = reservation.FechaCheckOut.AddDays(-1);
+                    
+                    foreach (var det in reservation.DetallesHabitacion)
+                    {
+                        var releaseReq = new
+                        {
+                            habitacionId = det.HabitacionId,
+                            fechaInicio = reservation.FechaCheckIn,
+                            fechaFin = fechaFinExclusiva
+                        };
+                        
+                        await alojamientosClient.PostAsJsonAsync("api/v1/Calendario/liberar", releaseReq);
+                    }
+                    
+                    return Results.Ok(ApiResponse<object>.Ok(null, "Reserva cancelada y habitaciones liberadas con éxito."));
+                }
+                else
+                {
+                    var statusReq = new { estado = nuevoEstado };
+                    var patchResponse = await reservasClient.PatchAsJsonAsync($"api/v1/Reservas/{id}/estado", statusReq);
+                    
+                    if (!patchResponse.IsSuccessStatusCode)
+                    {
+                        var errContent = await patchResponse.Content.ReadAsStringAsync();
+                        return Results.Json(ApiResponse<object>.Fail($"Error al actualizar estado en el microservicio: {errContent}"), statusCode: (int)patchResponse.StatusCode);
+                    }
+                    
+                    return Results.Ok(ApiResponse<object>.Ok(null, $"Estado de reserva actualizado a {nuevoEstado} con éxito."));
+                }
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        };
+
+        app.MapPatch("/api/reservas/{id:int}/estado", updateEstadoHandler)
+        .WithName("UpdateReservaEstado")
+        .WithTags("Reservas")
+        .WithOpenApi();
+
+        app.MapPatch("/api/v2/reservas-alojaexpress/{id:int}/estado", updateEstadoHandler)
+        .WithName("UpdateReservaEstado_V2")
+        .WithTags("Reservas")
         .WithOpenApi();
     }
 }

@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { jwtDecode } from 'jwt-decode';
+import { clientesApi } from '../api/clientes.api';
 
 const getInitialUser = () => {
   try {
@@ -17,29 +18,40 @@ const useAuthStore = create((set) => ({
   user: getInitialUser(),
   isAuthenticated: !!localStorage.getItem('alojaexpress_token'),
 
-  login: (loginResponse) => {
+  login: async (loginResponse) => {
     const decoded = jwtDecode(loginResponse.token);
     const userId = decoded.sub; // The JWT 'sub' claim contains the UsuarioId
 
-    localStorage.setItem('alojaexpress_token', loginResponse.token);
-    localStorage.setItem('alojaexpress_user', JSON.stringify({
+    let clienteId = loginResponse.clienteId;
+
+    // Fallback: si clienteId es null, buscar el clienteId por email consultando la lista de clientes
+    if (!clienteId && loginResponse.email) {
+      try {
+        const { data } = await clientesApi.getAll({ page: 1, size: 200 });
+        const clients = data?.datos || data?.items || (Array.isArray(data) ? data : []);
+        const matchingClient = clients.find(c => c.email?.toLowerCase() === loginResponse.email.toLowerCase());
+        if (matchingClient) {
+          clienteId = matchingClient.clienteId;
+        }
+      } catch (e) {
+        console.error("Error resolviendo clienteId por email:", e);
+      }
+    }
+
+    const userData = {
       id: userId,
-      clienteId: loginResponse.clienteId,
+      clienteId: clienteId,
       colaboradorId: loginResponse.colaboradorId,
       nombreCompleto: loginResponse.nombreCompleto,
       email: loginResponse.email,
       roles: loginResponse.roles,
-    }));
+    };
+
+    localStorage.setItem('alojaexpress_token', loginResponse.token);
+    localStorage.setItem('alojaexpress_user', JSON.stringify(userData));
     set({
       token: loginResponse.token,
-      user: {
-        id: userId,
-        clienteId: loginResponse.clienteId,
-        colaboradorId: loginResponse.colaboradorId,
-        nombreCompleto: loginResponse.nombreCompleto,
-        email: loginResponse.email,
-        roles: loginResponse.roles,
-      },
+      user: userData,
       isAuthenticated: true,
     });
   },

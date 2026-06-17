@@ -25,7 +25,8 @@ public class CheckoutMiddleware
     public async Task InvokeAsync(HttpContext context)
     {
         if (context.Request.Method == "POST" &&
-            context.Request.Path.StartsWithSegments("/api/v1/reservas/checkout", StringComparison.OrdinalIgnoreCase))
+            (context.Request.Path.StartsWithSegments("/api/v1/reservas/checkout", StringComparison.OrdinalIgnoreCase) ||
+             context.Request.Path.StartsWithSegments("/api/v2/reservas-alojaexpress/checkout", StringComparison.OrdinalIgnoreCase)))
         {
             var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger<CheckoutMiddleware>();

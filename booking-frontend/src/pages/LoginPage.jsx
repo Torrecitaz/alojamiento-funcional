@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HiOutlineMail, HiOutlineLockClosed } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { authApi } from '../api/auth.api';
 import useAuthStore from '../store/useAuthStore';
 import './LoginPage.css';
 
@@ -21,8 +21,8 @@ export default function LoginPage() {
     }
     setLoading(true);
     try {
-      const { data } = await api.post('/auth/login', { email, password });
-      login(data.datos);
+      const { data } = await authApi.login({ email, password });
+      await login(data.datos);
       toast.success(`¡Bienvenido, ${data.datos.nombreCompleto}!`);
       
       // Redirección basada en rol

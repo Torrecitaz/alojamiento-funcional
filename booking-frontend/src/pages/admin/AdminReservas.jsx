@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { reservasApi } from '../../api/reservas.api';
 import './AdminLayout.css';
 
 export default function AdminReservas() {
@@ -15,7 +15,7 @@ export default function AdminReservas() {
   const cargarTodas = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get('/reservas/todas');
+      const { data } = await reservasApi.getTodas();
       setReservas(data.datos || []);
     } catch {
       toast.error('Error al cargar reservas.');
@@ -29,7 +29,7 @@ export default function AdminReservas() {
     if (!clienteId) { cargarTodas(); return; }
     setLoading(true);
     try {
-      const { data } = await api.get(`/reservas/cliente/${clienteId}`);
+      const { data } = await reservasApi.getByClienteId(clienteId);
       setReservas(data.datos || []);
     } catch {
       toast.error('Error al cargar reservas.');
@@ -41,7 +41,7 @@ export default function AdminReservas() {
 
   const cambiarEstado = async (reservaId, nuevoEstado) => {
     try {
-      await api.patch(`/reservas/${reservaId}/estado`, { reservaId, nuevoEstado });
+      await reservasApi.actualizarEstado(reservaId, nuevoEstado);
       toast.success(`Reserva actualizada a ${nuevoEstado}`);
       cargarTodas();
     } catch (err) {

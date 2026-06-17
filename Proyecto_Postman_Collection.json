@@ -1,0 +1,549 @@
+{
+  "info": {
+    "_postman_id": "8b082196-829d-4720-94f7-927b5028442a",
+    "name": "AlojaExpress API Integration V2",
+    "description": "Colección de Postman para el flujo de integración de AlojaExpress V2 (retos y contrato unificado /api/v2/*-alojaexpress).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Autenticación",
+      "item": [
+        {
+          "name": "Iniciar Sesión (Login)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.datos && jsonData.datos.token) {",
+                  "    pm.collectionVariables.set(\"alojaexpress_token\", jsonData.datos.token);",
+                  "    pm.collectionVariables.set(\"clienteId\", jsonData.datos.clienteId || 1);",
+                  "    pm.collectionVariables.set(\"colaboradorId\", jsonData.datos.colaboradorId || 1);",
+                  "    console.log(\"Token guardado exitosamente:\", jsonData.datos.token);",
+                  "} else if (jsonData.token) {",
+                  "    pm.collectionVariables.set(\"alojaexpress_token\", jsonData.token);",
+                  "    pm.collectionVariables.set(\"clienteId\", jsonData.clienteId || 1);",
+                  "    console.log(\"Token guardado exitosamente (root):\");",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@booking.com\",\n  \"password\": \"Admin2025!\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/auth-alojaexpress/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "auth-alojaexpress",
+                "login"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Alojamientos",
+      "item": [
+        {
+          "name": "Listar Alojamientos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/alojamientos-alojaexpress?ciudad=Quito&page=1&pageSize=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "alojamientos-alojaexpress"
+              ],
+              "query": [
+                {
+                  "key": "ciudad",
+                  "value": "Quito"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "pageSize",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar Alojamientos (Dashboard/Catálogo)",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/alojamientos-alojaexpress/buscar?CiudadId=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "alojamientos-alojaexpress",
+                "buscar"
+              ],
+              "query": [
+                {
+                  "key": "CiudadId",
+                  "value": "1"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Detalle Alojamiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/alojamientos-alojaexpress/1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "alojamientos-alojaexpress",
+                "1"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Tipos de Alojamiento",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/alojamientos-alojaexpress/tipos",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "alojamientos-alojaexpress",
+                "tipos"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Ciudades Catálogo",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/alojamientos-alojaexpress/ciudades",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "alojamientos-alojaexpress",
+                "ciudades"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Consultar Disponibilidad de Habitaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/alojamientos-alojaexpress/1/disponibilidad?fechaDesde=2026-07-01&fechaHasta=2026-07-05&adultos=2&ninos=0",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "alojamientos-alojaexpress",
+                "1",
+                "disponibilidad"
+              ],
+              "query": [
+                {
+                  "key": "fechaDesde",
+                  "value": "2026-07-01"
+                },
+                {
+                  "key": "fechaHasta",
+                  "value": "2026-07-05"
+                },
+                {
+                  "key": "adultos",
+                  "value": "2"
+                },
+                {
+                  "key": "ninos",
+                  "value": "0"
+                }
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Clientes",
+      "item": [
+        {
+          "name": "Registrar Huésped",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"cliente.test@example.com\",\n  \"password\": \"PasswordSeguro123\",\n  \"nombreCompleto\": \"Cliente de Pruebas\",\n  \"cedula\": \"1798765432\",\n  \"telefono\": \"0987654321\",\n  \"domicilio\": \"Av. Amazonas y Colón, Quito\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/clientes-alojaexpress/registrar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "clientes-alojaexpress",
+                "registrar"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Buscar por Cédula",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/clientes-alojaexpress/cedula/1798765432",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "clientes-alojaexpress",
+                "cedula",
+                "1798765432"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Perfil Cliente por ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/clientes-alojaexpress/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "clientes-alojaexpress",
+                "{{clienteId}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Reservas",
+      "item": [
+        {
+          "name": "Crear Reserva (Orquestador + Calendario)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.datos && jsonData.datos.codigoReserva) {",
+                  "    pm.collectionVariables.set(\"codigoReserva\", jsonData.datos.codigoReserva);",
+                  "    pm.collectionVariables.set(\"reservaId\", jsonData.datos.reservaId);",
+                  "    console.log(\"Reserva guardada:\", jsonData.datos.codigoReserva);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"clienteId\": {{clienteId}},\n  \"alojamientoId\": 1,\n  \"fechaCheckIn\": \"2026-07-01\",\n  \"fechaCheckOut\": \"2026-07-05\",\n  \"numAdultos\": 2,\n  \"numNinos\": 0,\n  \"llevaMascotas\": false,\n  \"codigoDescuento\": null,\n  \"habitaciones\": [\n    {\n      \"habitacionId\": 1,\n      \"precioPorNoche\": 150.00\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/reservas-alojaexpress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "reservas-alojaexpress"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Obtener Reserva por Código",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/reservas-alojaexpress/{{codigoReserva}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "reservas-alojaexpress",
+                "{{codigoReserva}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Historial de Reservas del Cliente",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/reservas-alojaexpress/cliente/{{clienteId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "reservas-alojaexpress",
+                "cliente",
+                "{{clienteId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Checkout de Reserva (Factura + Idempotency)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Idempotency-Key",
+                "value": "pay_postman_test_{{$randomInt}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idCarrito\": \"{{codigoReserva}}\",\n  \"metodoPagoId\": \"22222222-2222-2222-2222-222222222222\",\n  \"currency\": \"USD\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/reservas-alojaexpress/checkout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "reservas-alojaexpress",
+                "checkout"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Cancelar Reserva",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/reservas-alojaexpress/{{reservaId}}/cancelar",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "reservas-alojaexpress",
+                "{{reservaId}}",
+                "cancelar"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Facturación y Métodos de Pago",
+      "item": [
+        {
+          "name": "Obtener Factura de Reserva",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/facturas-alojaexpress/reserva/{{reservaId}}",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "facturas-alojaexpress",
+                "reserva",
+                "{{reservaId}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Listar Métodos de Pago",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/v2/metodospago-alojaexpress",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "v2",
+                "metodospago-alojaexpress"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{alojaexpress_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          ""
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5028",
+      "type": "string"
+    },
+    {
+      "key": "alojaexpress_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "clienteId",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "codigoReserva",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "reservaId",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}

@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import api from '../../services/api';
+import { alojamientosApi } from '../../api/alojamientos.api';
+import { reservasApi } from '../../api/reservas.api';
+import { clientesApi } from '../../api/clientes.api';
+import { colaboradoresApi } from '../../api/colaboradores.api';
 import useAuthStore from '../../store/useAuthStore';
 import './AdminLayout.css';
 
@@ -20,10 +23,10 @@ export default function AdminDashboard() {
   const loadDashboard = async () => {
     try {
       const endpoints = [
-        esAdmin ? api.get('/propiedades/buscar') : api.get(`/propiedades/colaborador/${user?.colaboradorId}`),
-        esAdmin ? api.get('/reservas/todas') : Promise.resolve({ data: { datos: [] } }),
-        esAdmin ? api.get('/clientes') : Promise.resolve({ data: { datos: [] } }),
-        esAdmin ? api.get('/colaboradores') : Promise.resolve({ data: { datos: [] } })
+        esAdmin ? alojamientosApi.buscar() : alojamientosApi.getByColaboradorId(user?.colaboradorId),
+        esAdmin ? reservasApi.getTodas() : Promise.resolve({ data: { datos: [] } }),
+        esAdmin ? clientesApi.getAll() : Promise.resolve({ data: { datos: [] } }),
+        esAdmin ? colaboradoresApi.getAll() : Promise.resolve({ data: { datos: [] } })
       ];
 
       const [propRes, reservasRes, clientesRes, colabRes] = await Promise.allSettled(endpoints);

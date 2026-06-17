@@ -3,7 +3,9 @@ import { useParams, Link } from 'react-router-dom';
 import { HiOutlineStar, HiOutlineLocationMarker, HiOutlineArrowLeft } from 'react-icons/hi';
 import { Bed, Bath, PawPrint, Snowflake, ChefHat, Ruler } from 'lucide-react';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { alojamientosApi } from '../api/alojamientos.api';
+import { habitacionesApi } from '../api/habitaciones.api';
+import { reservasApi } from '../api/reservas.api';
 import useAuthStore from '../store/useAuthStore';
 import './PropiedadDetallePage.css';
 
@@ -31,8 +33,8 @@ export default function PropiedadDetallePage() {
     setLoading(true);
     try {
       const [propRes, habRes] = await Promise.all([
-        api.get(`/propiedades/${id}`),
-        api.get(`/habitaciones/por-propiedad/${id}`).catch(() => ({ data: { datos: [] } })),
+        alojamientosApi.getById(id),
+        habitacionesApi.getByAlojamientoId(id).catch(() => ({ data: { datos: [] } })),
       ]);
       setPropiedad(propRes.data.datos);
       setHabitaciones(habRes.data.datos || []);
@@ -63,7 +65,7 @@ export default function PropiedadDetallePage() {
         metodoPagoId: 1 
       };
 
-      const result = await api.post('/reservas', payload);
+      const result = await reservasApi.crear(payload);
       const nuevaReserva = result.data.datos;
       
       toast.success('¡Reserva creada! Por favor completa el pago.');

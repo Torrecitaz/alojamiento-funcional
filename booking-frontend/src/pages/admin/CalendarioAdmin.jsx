@@ -10,7 +10,9 @@ import {
   HiBan 
 } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { alojamientosApi } from '../../api/alojamientos.api';
+import { habitacionesApi } from '../../api/habitaciones.api';
+import { calendarioApi } from '../../api/calendario.api';
 import useAuthStore from '../../store/useAuthStore';
 import useSignalR from '../../hooks/useSignalR';
 import './CalendarioAdmin.css';
@@ -45,9 +47,9 @@ export default function CalendarioAdmin() {
   // 1. Cargar Propiedades
   useEffect(() => {
     const fetchProps = esAdmin 
-      ? api.get('/propiedades/buscar?PageSize=1000')
+      ? alojamientosApi.buscar({ PageSize: 1000 })
       : user?.colaboradorId 
-        ? api.get(`/propiedades/colaborador/${user.colaboradorId}`)
+        ? alojamientosApi.getByColaboradorId(user.colaboradorId)
         : Promise.resolve({ data: { datos: [] } });
 
     fetchProps
@@ -72,7 +74,7 @@ export default function CalendarioAdmin() {
 
     const fetchHabitaciones = async () => {
       try {
-        const { data } = await api.get(`/habitaciones/por-propiedad/${propiedadSeleccionada}`);
+        const { data } = await habitacionesApi.getByAlojamientoId(propiedadSeleccionada);
         const list = data.datos || [];
         setHabitaciones(list);
         if (list.length > 0) {
@@ -98,10 +100,7 @@ export default function CalendarioAdmin() {
     }
     setLoading(true);
     try {
-      // Endpoint: GET /api/v1/calendario/habitacion/{habitacionId}?mes={mes}&anio={anio}
-      const { data } = await api.get(`/calendario/habitacion/${habitacionSeleccionada}`, {
-        params: { mes, anio }
-      });
+      const { data } = await calendarioApi.getDisponibilidad(habitacionSeleccionada, { mes, anio });
       setDisponibilidad(data || []);
     } catch {
       toast.error('Error al cargar la disponibilidad del calendario.');
@@ -190,7 +189,7 @@ export default function CalendarioAdmin() {
           fechaFin,
           estado: estadoBloqueo
         };
-        await api.post('/calendario/bloquear', payload);
+        await calendarioApi.bloquear(payload);
         toast.success(`Fechas bloqueadas exitosamente como: ${estadoBloqueo}`);
       } else {
         const payload = {
@@ -198,7 +197,7 @@ export default function CalendarioAdmin() {
           fechaInicio,
           fechaFin
         };
-        await api.post('/calendario/liberar', payload);
+        await calendarioApi.liberar(payload);
         toast.success('Fechas liberadas exitosamente.');
       }
       cargarDisponibilidad();

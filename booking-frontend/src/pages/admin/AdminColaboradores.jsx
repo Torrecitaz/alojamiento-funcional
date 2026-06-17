@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { colaboradoresApi } from '../../api/colaboradores.api';
+import { authApi } from '../../api/auth.api';
 import './AdminLayout.css';
 
 export default function AdminColaboradores() {
@@ -23,8 +24,8 @@ export default function AdminColaboradores() {
     setLoading(true);
     try {
       const [colabRes, userRes] = await Promise.allSettled([
-        api.get('/colaboradores'),
-        api.get('/auth/usuarios')
+        colaboradoresApi.getAll(),
+        authApi.getUsuarios()
       ]);
 
       if (colabRes.status === 'fulfilled') setColaboradores(colabRes.value.data.datos || []);
@@ -49,7 +50,7 @@ export default function AdminColaboradores() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await api.post('/colaboradores', {
+      await colaboradoresApi.crear({
         usuarioId: parseInt(formData.usuarioId),
         nombreEmpresa: formData.nombreEmpresa,
         telefono: formData.telefono
@@ -68,7 +69,7 @@ export default function AdminColaboradores() {
   const handleDelete = async (id) => {
     if (!window.confirm('¿Estás seguro de eliminar este colaborador? Las propiedades podrían quedar sin dueño.')) return;
     try {
-      await api.delete(`/colaboradores/${id}`);
+      await colaboradoresApi.eliminar(id);
       toast.success('Colaborador eliminado.');
       load();
     } catch { toast.error('Error al eliminar.'); }

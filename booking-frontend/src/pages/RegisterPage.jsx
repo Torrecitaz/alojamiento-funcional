@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { HiOutlineUser, HiOutlineMail, HiOutlineLockClosed, HiOutlinePhone } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { clientesApi } from '../api/clientes.api';
 import './LoginPage.css';
 
 export default function RegisterPage() {
@@ -28,7 +28,7 @@ export default function RegisterPage() {
     }
     setLoading(true);
     try {
-      await api.post('/clientes', {
+      await clientesApi.registrar({
         nombreCompleto: form.nombreCompleto,
         email: form.email,
         password: form.password,

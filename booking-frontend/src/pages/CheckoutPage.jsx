@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { HiOutlineCreditCard, HiOutlineCash, HiOutlineShieldCheck, HiOutlineCalendar, HiOutlineUsers, HiOutlineHome } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { reservasApi } from '../api/reservas.api';
 import './CheckoutPage.css';
 
 const METODOS_PAGO = [
@@ -21,7 +21,7 @@ export default function CheckoutPage() {
   useEffect(() => {
     const fetchReserva = async () => {
       try {
-        const { data } = await api.get(`/reservas/${codigo}`);
+        const { data } = await reservasApi.getByCodigo(codigo);
         setReserva(data.datos);
         
         if (data.datos.estado === 'Confirmada') {
@@ -55,7 +55,7 @@ export default function CheckoutPage() {
         currency: 'USD'
       };
 
-      await api.post('/reservas/checkout', payload, {
+      await reservasApi.checkout(payload, {
         headers: { 'Idempotency-Key': idempotencyKey }
       });
 

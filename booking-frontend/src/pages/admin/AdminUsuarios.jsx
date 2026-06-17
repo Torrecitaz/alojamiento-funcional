@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineUserCircle, HiOutlineShieldCheck, HiOutlineBan, HiOutlineCheckCircle } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { authApi } from '../../api/auth.api';
 import './AdminLayout.css';
 
 export default function AdminUsuarios() {
@@ -16,8 +16,8 @@ export default function AdminUsuarios() {
     setLoading(true);
     try {
       const [usersRes, rolesRes] = await Promise.allSettled([
-        api.get('/auth/usuarios'),
-        api.get('/auth/roles'),
+        authApi.getUsuarios(),
+        authApi.getRoles(),
       ]);
       if (usersRes.status === 'fulfilled') setUsuarios(usersRes.value.data.datos || []);
       if (rolesRes.status === 'fulfilled') setRoles(rolesRes.value.data.datos || []);
@@ -30,7 +30,7 @@ export default function AdminUsuarios() {
 
   const cambiarRol = async (userId, rolId) => {
     try {
-      await api.patch(`/auth/usuarios/${userId}/rol`, { rolId: parseInt(rolId) });
+      await authApi.cambiarRol(userId, parseInt(rolId));
       toast.success('Rol actualizado. El usuario debe reiniciar sesión para ver los cambios.', { duration: 5000 });
       load();
     } catch (err) {
@@ -44,7 +44,7 @@ export default function AdminUsuarios() {
     if (!window.confirm(confirmMsg)) return;
 
     try {
-      await api.patch(`/auth/usuarios/${userId}/estado`, { activo: nuevoEstado });
+      await authApi.cambiarEstado(userId, nuevoEstado);
       toast.success(nuevoEstado ? 'Cuenta activada.' : 'Cuenta suspendida.');
       load();
     } catch (err) {

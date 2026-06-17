@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
 import { HiOutlinePlus, HiOutlineKey, HiOutlineTrash, HiOutlineSearch, HiOutlineOfficeBuilding } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../../services/api';
+import { alojamientosApi } from '../../api/alojamientos.api';
+import { habitacionesApi } from '../../api/habitaciones.api';
 import useAuthStore from '../../store/useAuthStore';
 import './AdminLayout.css';
 
@@ -36,9 +37,9 @@ export default function AdminHabitaciones() {
   useEffect(() => {
     // Cargar propiedades para el select principal
     const fetchProps = esAdmin 
-      ? api.get('/propiedades/buscar?PageSize=1000')
+      ? alojamientosApi.buscar({ PageSize: 1000 })
       : user?.colaboradorId 
-        ? api.get(`/propiedades/colaborador/${user.colaboradorId}`)
+        ? alojamientosApi.getByColaboradorId(user.colaboradorId)
         : Promise.resolve({ data: { datos: [] } });
 
     fetchProps
@@ -62,7 +63,7 @@ export default function AdminHabitaciones() {
   const buscarHabitaciones = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/habitaciones/por-propiedad/${propiedadSeleccionada}`);
+      const { data } = await habitacionesApi.getByAlojamientoId(propiedadSeleccionada);
       setHabitaciones(data.datos || []);
     } catch { 
       toast.error('Error al cargar habitaciones.'); 
@@ -98,10 +99,10 @@ export default function AdminHabitaciones() {
       };
 
       if (editingId) {
-        await api.put(`/habitaciones/${editingId}`, payload);
+        await habitacionesApi.actualizar(editingId, payload);
         toast.success('Habitación actualizada exitosamente.');
       } else {
-        await api.post('/habitaciones', payload);
+        await habitacionesApi.crear(payload);
         toast.success('Habitación agregada exitosamente.');
       }
       
@@ -141,7 +142,7 @@ export default function AdminHabitaciones() {
   const eliminarHabitacion = async (id) => {
     if (!window.confirm('¿Estás seguro de eliminar esta habitación de forma lógica?')) return;
     try {
-      await api.delete(`/habitaciones/${id}`);
+      await habitacionesApi.eliminar(id);
       toast.success('Habitación eliminada.');
       buscarHabitaciones();
     } catch {

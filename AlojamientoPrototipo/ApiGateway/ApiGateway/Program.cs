@@ -52,7 +52,7 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
     {
-        Title = "AlojamientoMR - Contrato de Integración para Booking",
+        Title = "AlojaExpress - Contrato de Integración para Booking",
         Version = "1.0.0",
         Description = "API pública orientada al flujo del usuario final dentro de la plataforma Booking."
     });

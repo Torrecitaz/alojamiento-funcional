@@ -18,14 +18,14 @@ public static class HabitacionEndpoints
 {
     public static void MapHabitacionEndpoints(this IEndpointRouteBuilder app)
     {
-        // 4. Consultar habitaciones disponibles por fechas
-        app.MapGet("/api/v1/alojamientos/{id:int}/disponibilidad", async (
+        // Core handler for checking availability
+        var checkDisponibilidad = async (
             int id,
-            IHttpClientFactory httpClientFactory,
-            [FromQuery] string fechaDesde,
-            [FromQuery] string fechaHasta,
-            [FromQuery] int adultos = 1,
-            [FromQuery] int ninos = 0) =>
+            string fechaDesde,
+            string fechaHasta,
+            int adultos,
+            int ninos,
+            IHttpClientFactory httpClientFactory) =>
         {
             try
             {
@@ -148,100 +148,117 @@ public static class HabitacionEndpoints
             {
                 return Results.Json(ApiResponse<DisponibilidadDto>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
+        };
+
+        // 4. Consultar habitaciones disponibles por fechas (Legacy Route)
+        app.MapGet("/api/alojamientos/{id:int}/disponibilidad", async (
+            int id,
+            IHttpClientFactory httpClientFactory,
+            [FromQuery] string fechaDesde,
+            [FromQuery] string fechaHasta,
+            [FromQuery] int adultos = 1,
+            [FromQuery] int ninos = 0) =>
+        {
+            return await checkDisponibilidad(id, fechaDesde, fechaHasta, adultos, ninos, httpClientFactory);
         })
         .WithName("GetDisponibilidad")
         .WithTags("Disponibilidad")
         .WithOpenApi();
 
-        app.MapGet("/api/v1/habitaciones/propiedad/{propiedadId:int}", async (
-            int propiedadId,
-            IHttpClientFactory httpClientFactory) =>
+        // 4. Consultar habitaciones disponibles por fechas (V1 Route)
+        app.MapGet("/api/v1/alojamientos/{id:int}/disponibilidad", async (
+            int id,
+            IHttpClientFactory httpClientFactory,
+            [FromQuery] string fechaDesde,
+            [FromQuery] string fechaHasta,
+            [FromQuery] int adultos = 1,
+            [FromQuery] int ninos = 0) =>
         {
-            try
-            {
-                var client = httpClientFactory.CreateClient("Alojamientos");
-                var response = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{propiedadId}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    return Results.Json(ApiResponse<object>.Fail("Error al obtener habitaciones del microservicio."), statusCode: (int)response.StatusCode);
-                }
-
-                var rawList = await response.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
-                if (rawList == null) return Results.Ok(ApiResponse<object>.Ok(new List<object>()));
-
-                var mapped = rawList.Select(h => new
-                {
-                    habitacionId = h.HabitacionId,
-                    alojamientoId = h.AlojamientoId,
-                    nombre = h.Nombre,
-                    descripcion = h.Descripcion,
-                    precioNoche = h.PrecioNoche,
-                    capacidadAdultos = h.CapacidadAdultos,
-                    capacidadNinos = h.CapacidadNinos,
-                    numDormitorios = h.NumDormitorios,
-                    numBanos = h.NumBanos,
-                    tieneCocina = h.TieneCocina,
-                    tieneAireAcondicionado = h.TieneAireAcondicionado,
-                    superficieM2 = h.SuperficieM2,
-                    estado = h.Estado ?? "Activo",
-                    fotos = h.Fotos
-                }).ToList();
-
-                return Results.Ok(ApiResponse<object>.Ok(mapped));
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
-            }
-        });
-
-        // ALIAS ENDPOINT FOR FRONTEND MAPPING MATCH
-        app.MapGet("/api/v1/habitaciones/por-propiedad/{propiedadId:int}", async (
-            int propiedadId,
-            IHttpClientFactory httpClientFactory) =>
-        {
-            try
-            {
-                var client = httpClientFactory.CreateClient("Alojamientos");
-                var response = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{propiedadId}");
-                if (!response.IsSuccessStatusCode)
-                {
-                    return Results.Json(ApiResponse<object>.Fail("Error al obtener habitaciones del microservicio."), statusCode: (int)response.StatusCode);
-                }
-
-                var rawList = await response.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
-                if (rawList == null) return Results.Ok(ApiResponse<object>.Ok(new List<object>()));
-
-                var mapped = rawList.Select(h => new
-                {
-                    habitacionId = h.HabitacionId,
-                    alojamientoId = h.AlojamientoId,
-                    nombre = h.Nombre,
-                    descripcion = h.Descripcion,
-                    precioNoche = h.PrecioNoche,
-                    capacidadAdultos = h.CapacidadAdultos,
-                    capacidadNinos = h.CapacidadNinos,
-                    numDormitorios = h.NumDormitorios,
-                    numBanos = h.NumBanos,
-                    tieneCocina = h.TieneCocina,
-                    tieneAireAcondicionado = h.TieneAireAcondicionado,
-                    superficieM2 = h.SuperficieM2,
-                    estado = h.Estado ?? "Activo",
-                    fotos = h.Fotos
-                }).ToList();
-
-                return Results.Ok(ApiResponse<object>.Ok(mapped));
-            }
-            catch (Exception ex)
-            {
-                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
-            }
+            return await checkDisponibilidad(id, fechaDesde, fechaHasta, adultos, ninos, httpClientFactory);
         })
-        .WithName("GetHabitacionesPorPropiedadAlias")
-        .WithTags("Habitaciones")
+        .WithName("GetDisponibilidadV1")
+        .WithTags("Disponibilidad")
         .WithOpenApi();
 
-        app.MapPost("/api/v1/habitaciones", async (
+        // 4b. Consultar habitaciones disponibles por fechas (New V2 Route)
+        app.MapGet("/api/v2/alojamientos-alojaexpress/{id:int}/disponibilidad", async (
+            int id,
+            IHttpClientFactory httpClientFactory,
+            [FromQuery] string fechaDesde,
+            [FromQuery] string fechaHasta,
+            [FromQuery] int adultos = 1,
+            [FromQuery] int ninos = 0) =>
+        {
+            return await checkDisponibilidad(id, fechaDesde, fechaHasta, adultos, ninos, httpClientFactory);
+        })
+        .WithName("GetDisponibilidad_V2")
+        .WithTags("Disponibilidad")
+        .WithOpenApi();
+
+        // 4c. Consultar disponibilidad con Query parameters (Soporte calendario-alojaexpress)
+        app.MapGet("/api/v2/calendario-alojaexpress/disponibilidad", async (
+            [FromQuery] int alojamientoId,
+            [FromQuery] string fechaInicio,
+            [FromQuery] string fechaFin,
+            IHttpClientFactory httpClientFactory,
+            [FromQuery] int adultos = 1,
+            [FromQuery] int ninos = 0) =>
+        {
+            return await checkDisponibilidad(alojamientoId, fechaInicio, fechaFin, adultos, ninos, httpClientFactory);
+        })
+        .WithName("GetDisponibilidadCalendario_V2")
+        .WithTags("Disponibilidad")
+        .WithOpenApi();
+
+        // Obtener habitaciones de una propiedad
+        var getHabitacionesHandler = async (
+            int propiedadId,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                var client = httpClientFactory.CreateClient("Alojamientos");
+                var response = await client.GetAsync($"api/v1/Habitaciones/alojamiento/{propiedadId}");
+                if (!response.IsSuccessStatusCode)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("Error al obtener habitaciones del microservicio."), statusCode: (int)response.StatusCode);
+                }
+
+                var rawList = await response.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+                if (rawList == null) return Results.Ok(ApiResponse<object>.Ok(new List<object>()));
+
+                var mapped = rawList.Select(h => new
+                {
+                    habitacionId = h.HabitacionId,
+                    alojamientoId = h.AlojamientoId,
+                    nombre = h.Nombre,
+                    descripcion = h.Descripcion,
+                    precioNoche = h.PrecioNoche,
+                    capacidadAdultos = h.CapacidadAdultos,
+                    capacidadNinos = h.CapacidadNinos,
+                    numDormitorios = h.NumDormitorios,
+                    numBanos = h.NumBanos,
+                    tieneCocina = h.TieneCocina,
+                    tieneAireAcondicionado = h.TieneAireAcondicionado,
+                    superficieM2 = h.SuperficieM2,
+                    estado = h.Estado ?? "Activo",
+                    fotos = h.Fotos
+                }).ToList();
+
+                return Results.Ok(ApiResponse<object>.Ok(mapped));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        };
+
+        app.MapGet("/api/v1/habitaciones/propiedad/{propiedadId:int}", getHabitacionesHandler);
+        app.MapGet("/api/v1/habitaciones/por-propiedad/{propiedadId:int}", getHabitacionesHandler);
+        app.MapGet("/api/v2/habitaciones-alojaexpress/alojamiento/{propiedadId:int}", getHabitacionesHandler);
+
+        // Crear Habitación
+        var crearHabitacionHandler = async (
             JsonElement payload,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -262,12 +279,20 @@ public static class HabitacionEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        })
+        };
+
+        app.MapPost("/api/v1/habitaciones", crearHabitacionHandler)
         .WithName("CrearHabitacion")
         .WithTags("Habitaciones")
         .WithOpenApi();
 
-        app.MapPut("/api/v1/habitaciones/{id:int}", async (
+        app.MapPost("/api/v2/habitaciones-alojaexpress", crearHabitacionHandler)
+        .WithName("CrearHabitacion_V2")
+        .WithTags("Habitaciones")
+        .WithOpenApi();
+
+        // Actualizar Habitación
+        var actualizarHabitacionHandler = async (
             int id,
             JsonElement payload,
             IHttpClientFactory httpClientFactory) =>
@@ -288,9 +313,13 @@ public static class HabitacionEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
 
-        app.MapDelete("/api/v1/habitaciones/{id:int}", async (
+        app.MapPut("/api/v1/habitaciones/{id:int}", actualizarHabitacionHandler);
+        app.MapPut("/api/v2/habitaciones-alojaexpress/{id:int}", actualizarHabitacionHandler);
+
+        // Desactivar/Eliminar Habitación
+        var eliminarHabitacionHandler = async (
             int id,
             IHttpClientFactory httpClientFactory) =>
         {
@@ -310,6 +339,9 @@ public static class HabitacionEndpoints
             {
                 return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
             }
-        });
+        };
+
+        app.MapDelete("/api/v1/habitaciones/{id:int}", eliminarHabitacionHandler);
+        app.MapDelete("/api/v2/habitaciones-alojaexpress/{id:int}", eliminarHabitacionHandler);
     }
 }

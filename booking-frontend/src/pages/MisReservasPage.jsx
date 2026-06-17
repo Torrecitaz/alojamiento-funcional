@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { HiOutlineCalendar, HiOutlineEye } from 'react-icons/hi';
 import toast from 'react-hot-toast';
-import api from '../services/api';
+import { reservasApi } from '../api/reservas.api';
 import useAuthStore from '../store/useAuthStore';
 import './MisReservasPage.css';
 
@@ -18,7 +18,7 @@ export default function MisReservasPage() {
   const fetchReservas = async () => {
     setLoading(true);
     try {
-      const { data } = await api.get(`/reservas/cliente/${user.clienteId || user.id}`);
+      const { data } = await reservasApi.getByClienteId(user.clienteId || user.id);
       setReservas(data.datos || []);
     } catch {
       toast.error('No se pudieron cargar las reservas.');

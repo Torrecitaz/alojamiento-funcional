@@ -1,0 +1,551 @@
+openapi: 3.0.3
+info:
+  title: AlojaExpress - Contrato de Integración de Servicios V2
+  description: |
+    API pública de la plataforma AlojaExpress, adaptada y expuesta a través del API Gateway (YARP).
+    Cubre Alojamientos, Clientes, Reservas, Calendario de Disponibilidad y Facturación con prefijos unificados `/api/v2/{recurso}-alojaexpress`.
+  version: 2.0.0
+
+servers:
+  - url: http://localhost:5028/api/v2
+    description: Gateway de API Local (Desarrollo/QA)
+
+tags:
+  - name: Alojamientos
+    description: Catálogo y detalles de hoteles/alojamientos
+  - name: Clientes
+    description: Registro e información de clientes (Huéspedes)
+  - name: Reservas
+    description: Creación, consulta, cancelación y checkout de reservas
+  - name: Facturación
+    description: Emisión de facturas y métodos de pago
+
+paths:
+
+  /alojamientos-alojaexpress:
+    get:
+      tags: [Alojamientos]
+      summary: Buscar alojamientos
+      description: Retorna un listado de hospedajes filtrados por criterios y paginados.
+      operationId: BuscarAlojamientos
+      parameters:
+        - name: page
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: pageSize
+          in: query
+          schema: { type: integer, default: 20 }
+        - name: search
+          in: query
+          schema: { type: string }
+        - name: ciudad
+          in: query
+          schema: { type: string }
+        - name: estrellas
+          in: query
+          schema: { type: integer, minimum: 1, maximum: 5 }
+        - name: admiteMascotas
+          in: query
+          schema: { type: boolean }
+      responses:
+        '200':
+          description: Éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListAlojamiento'
+
+  /alojamientos-alojaexpress/{id}:
+    get:
+      tags: [Alojamientos]
+      summary: Detalle completo de alojamiento
+      description: Recupera la descripción completa, calificaciones, fotos y estado de un alojamiento por su ID.
+      operationId: GetAlojamientoDetalle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseAlojamientoDetalle'
+        '404':
+          description: No encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseError'
+
+  /alojamientos-alojaexpress/tipos:
+    get:
+      tags: [Alojamientos]
+      summary: Tipos de alojamiento
+      description: Devuelve la lista de tipos de hospedaje (Hotel, Hostal, Casa, etc.).
+      operationId: GetTiposAlojamiento
+      responses:
+        '200':
+          description: Éxito
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListTipo'
+
+  /alojamientos-alojaexpress/{id}/disponibilidad:
+    get:
+      tags: [Alojamientos]
+      summary: Consultar disponibilidad de habitaciones por fecha
+      description: Verifica la disponibilidad en tiempo real antes de efectuar una reserva.
+      operationId: GetDisponibilidad
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+        - name: fechaDesde
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: fechaHasta
+          in: query
+          required: true
+          schema: { type: string, format: date }
+        - name: adultos
+          in: query
+          schema: { type: integer, default: 1 }
+        - name: ninos
+          in: query
+          schema: { type: integer, default: 0 }
+      responses:
+        '200':
+          description: Disponibilidad devuelta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseDisponibilidad'
+        '400':
+          description: Fechas inválidas
+        '404':
+          description: Alojamiento no encontrado
+
+  /clientes-alojaexpress/registrar:
+    post:
+      tags: [Clientes]
+      summary: Registrar nuevo huésped
+      description: Registra un cliente asignándole un perfil y cuenta.
+      operationId: RegistrarCliente
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrarClienteRequest'
+      responses:
+        '201':
+          description: Registrado exitosamente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseSuccess'
+        '400':
+          description: Datos inválidos
+
+  /clientes-alojaexpress/cedula/{cedula}:
+    get:
+      tags: [Clientes]
+      summary: Buscar cliente por cédula
+      description: Obtiene la información del cliente registrado bajo una cédula.
+      operationId: GetClienteByCedula
+      parameters:
+        - name: cedula
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Cliente encontrado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCliente'
+        '404':
+          description: Cédula no registrada
+
+  /clientes-alojaexpress/{id}:
+    get:
+      tags: [Clientes]
+      summary: Obtener perfil del huésped
+      description: Obtiene los detalles de perfil del cliente por ID.
+      operationId: GetPerfilCliente
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Perfil cargado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseCliente'
+        '404':
+          description: Cliente no encontrado
+
+  /reservas-alojaexpress:
+    post:
+      tags: [Reservas]
+      summary: Crear reserva
+      description: Registra una nueva reserva bloqueando el calendario de habitaciones correspondientes.
+      operationId: CrearReserva
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CrearReservaRequest'
+      responses:
+        '200':
+          description: Reserva creada en estado pendiente
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReserva'
+
+  /reservas-alojaexpress/{codigoReserva}:
+    get:
+      tags: [Reservas]
+      summary: Consultar reserva por código
+      description: Devuelve los datos de la reserva dado su código alfanumérico.
+      operationId: GetReservaByCodigo
+      parameters:
+        - name: codigoReserva
+          in: path
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Reserva encontrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseReserva'
+        '404':
+          description: Código inválido o no existe
+
+  /reservas-alojaexpress/cliente/{clienteId}:
+    get:
+      tags: [Reservas]
+      summary: Historial de reservas del huésped
+      description: Listado del historial de reservas correspondientes a un cliente.
+      operationId: GetReservasByCliente
+      parameters:
+        - name: clienteId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Historial devuelto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListReserva'
+
+  /reservas-alojaexpress/{id}/cancelar:
+    patch:
+      tags: [Reservas]
+      summary: Cancelar reserva
+      description: Cancela la reserva liberando de manera automática el calendario.
+      operationId: CancelarReserva
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Cancelada con éxito
+
+  /reservas-alojaexpress/checkout:
+    post:
+      tags: [Reservas]
+      summary: Checkout y pago de reserva
+      description: Procesa el pago de una reserva pendiente, generando la factura respectiva de forma atómica.
+      operationId: CheckoutReserva
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [idCarrito, metodoPagoId, currency]
+              properties:
+                idCarrito: { type: string, description: "Código de reserva o ID" }
+                metodoPagoId: { type: string, description: "UUID o nombre de método de pago" }
+                currency: { type: string, default: "USD" }
+      responses:
+        '200':
+          description: Completado
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean }
+                  reservaId: { type: integer }
+                  codigoReserva: { type: string }
+                  facturaId: { type: integer }
+                  monto: { type: number }
+                  estado: { type: string }
+
+  /facturas-alojaexpress/reserva/{reservaId}:
+    get:
+      tags: [Facturación]
+      summary: Obtener factura de reserva
+      description: Recupera el comprobante de cobro de una reserva.
+      operationId: GetFacturaByReserva
+      parameters:
+        - name: reservaId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        '200':
+          description: Factura devuelta
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseFactura'
+
+  /metodospago-alojaexpress:
+    get:
+      tags: [Facturación]
+      summary: Listar métodos de pago disponibles
+      description: Retorna los métodos aceptados (Tarjetas, Pago en Sitio).
+      operationId: GetMetodosPago
+      responses:
+        '200':
+          description: Listado devuelto
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiResponseListMetodoPago'
+
+components:
+  schemas:
+    AlojamientoDto:
+      type: object
+      properties:
+        alojamientoId: { type: integer }
+        nombre: { type: string }
+        tipoAlojamiento: { type: string }
+        ciudad: { type: string }
+        direccion: { type: string }
+        precioNocheMinimo: { type: number }
+        moneda: { type: string }
+        estrellas: { type: integer }
+        imagenUrl: { type: string, format: uri, nullable: true }
+        admiteMascotas: { type: boolean }
+        tienePiscina: { type: boolean }
+        tieneParqueadero: { type: boolean }
+        disponible: { type: boolean }
+
+    AlojamientoDetalleDto:
+      allOf:
+        - $ref: '#/components/schemas/AlojamientoDto'
+        - type: object
+          properties:
+            descripcion: { type: string }
+            calificacionPromedio: { type: number }
+            totalResenas: { type: integer }
+            fotos:
+              type: array
+              items:
+                type: object
+                properties:
+                  url: { type: string }
+                  descripcion: { type: string }
+
+    TipoAlojamientoDto:
+      type: object
+      properties:
+        tipoAlojamientoId: { type: integer }
+        nombre: { type: string }
+        descripcion: { type: string }
+
+    DisponibilidadDto:
+      type: object
+      properties:
+        alojamientoId: { type: integer }
+        fechaDesde: { type: string }
+        fechaHasta: { type: string }
+        totalNoches: { type: integer }
+        habitacionesDisponibles:
+          type: array
+          items:
+            $ref: '#/components/schemas/HabitacionDisponibleDto'
+
+    HabitacionDisponibleDto:
+      type: object
+      properties:
+        habitacionId: { type: integer }
+        nombre: { type: string }
+        descripcion: { type: string }
+        precioNoche: { type: number }
+        precioTotal: { type: number }
+        moneda: { type: string }
+        capacidadAdultos: { type: integer }
+        capacidadNinos: { type: integer }
+
+    ClienteDto:
+      type: object
+      properties:
+        clienteId: { type: integer }
+        nombreCompleto: { type: string }
+        email: { type: string }
+        cedula: { type: string }
+        telefono: { type: string }
+        domicilio: { type: string }
+        totalReservas: { type: integer }
+
+    RegistrarClienteRequest:
+      type: object
+      required: [email, password, nombreCompleto, cedula]
+      properties:
+        email: { type: string }
+        password: { type: string }
+        nombreCompleto: { type: string }
+        cedula: { type: string }
+        telefono: { type: string }
+        domicilio: { type: string }
+
+    ReservaDto:
+      type: object
+      properties:
+        reservaId: { type: integer }
+        codigoReserva: { type: string }
+        alojamientoId: { type: integer }
+        nombreAlojamiento: { type: string }
+        fechaCheckIn: { type: string }
+        fechaCheckOut: { type: string }
+        numNoches: { type: integer }
+        numAdultos: { type: integer }
+        numNinos: { type: integer }
+        llevaMascotas: { type: boolean }
+        subTotal: { type: number }
+        total: { type: number }
+        estado: { type: string }
+
+    CrearReservaRequest:
+      type: object
+      required: [clienteId, alojamientoId, fechaCheckIn, fechaCheckOut, numAdultos, habitaciones]
+      properties:
+        clienteId: { type: integer }
+        alojamientoId: { type: integer }
+        fechaCheckIn: { type: string }
+        fechaCheckOut: { type: string }
+        numAdultos: { type: integer }
+        numNinos: { type: integer }
+        llevaMascotas: { type: boolean }
+        habitaciones:
+          type: array
+          items:
+            type: object
+            required: [habitacionId, precioPorNoche]
+            properties:
+              habitacionId: { type: integer }
+              precioPorNoche: { type: number }
+
+    FacturaDto:
+      type: object
+      properties:
+        facturaId: { type: integer }
+        reservaId: { type: integer }
+        codigoReserva: { type: string }
+        monto: { type: number }
+        moneda: { type: string }
+        metodoPago: { type: string }
+        estado: { type: string }
+        fechaPago: { type: string }
+
+    MetodoPagoDto:
+      type: object
+      properties:
+        metodoPagoId: { type: integer }
+        tipo: { type: string }
+
+    ApiResponseListAlojamiento:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { type: array, items: { $ref: '#/components/schemas/AlojamientoDto' } }
+
+    ApiResponseAlojamientoDetalle:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/AlojamientoDetalleDto' }
+
+    ApiResponseListTipo:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { type: array, items: { $ref: '#/components/schemas/TipoAlojamientoDto' } }
+
+    ApiResponseDisponibilidad:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/DisponibilidadDto' }
+
+    ApiResponseCliente:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/ClienteDto' }
+
+    ApiResponseReserva:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/ReservaDto' }
+
+    ApiResponseListReserva:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { type: array, items: { $ref: '#/components/schemas/ReservaDto' } }
+
+    ApiResponseFactura:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { $ref: '#/components/schemas/FacturaDto' }
+
+    ApiResponseListMetodoPago:
+      type: object
+      properties:
+        success: { type: boolean }
+        data: { type: array, items: { $ref: '#/components/schemas/MetodoPagoDto' } }
+
+    ApiResponseSuccess:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+
+    ApiResponseError:
+      type: object
+      properties:
+        success: { type: boolean }
+        message: { type: string }
+        errors: { type: array, items: { type: string } }
