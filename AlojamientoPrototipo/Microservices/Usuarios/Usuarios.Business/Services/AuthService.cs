@@ -62,7 +62,11 @@ public class AuthService : IAuthService
 
         // Generar JWT
         var tokenHandler = new JwtSecurityTokenHandler();
-        var secretKey = _configuration["Jwt:Secret"] ?? "SuperSecretKeyOfAtLeast32CharactersLong!!!";
+        var secretKey = _configuration["Jwt:Secret"];
+        if (string.IsNullOrWhiteSpace(secretKey))
+        {
+            secretKey = "SuperSecretKeyOfAtLeast32CharactersLong!!!";
+        }
         var key = Encoding.ASCII.GetBytes(secretKey);
 
         var claims = new List<Claim>
