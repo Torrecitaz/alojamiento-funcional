@@ -61,17 +61,13 @@ public static class PropiedadesEndpoints
                 
                 var paginatedList = pagedResult.Items;
                     
-                var tasks = paginatedList.Select(async item =>
+                var resultList = new List<AlojamientoDto>();
+                foreach (var item in paginatedList)
                 {
                     decimal precioMin = 0;
                     string? imagenUrl = null;
 
-                    var roomsTask = alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
-                    var photosTask = alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
-
-                    await Task.WhenAll(roomsTask, photosTask);
-
-                    var roomsResponse = await roomsTask;
+                    var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
                     if (roomsResponse.IsSuccessStatusCode)
                     {
                         var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
@@ -81,7 +77,7 @@ public static class PropiedadesEndpoints
                         }
                     }
 
-                    var photosResponse = await photosTask;
+                    var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
                     if (photosResponse.IsSuccessStatusCode)
                     {
                         var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
@@ -91,7 +87,7 @@ public static class PropiedadesEndpoints
                         }
                     }
 
-                    return new AlojamientoDto
+                    resultList.Add(new AlojamientoDto
                     {
                         AlojamientoId = item.AlojamientoId,
                         Nombre = item.Nombre,
@@ -106,10 +102,8 @@ public static class PropiedadesEndpoints
                         TienePiscina = item.TienePiscina,
                         TieneParqueadero = item.TieneParqueadero,
                         Disponible = true
-                    };
-                });
-
-                var resultList = (await Task.WhenAll(tasks)).ToList();
+                    });
+                }
                 
                 return Results.Ok(ApiResponse<List<AlojamientoDto>>.Ok(resultList));
             }
@@ -346,17 +340,13 @@ public static class PropiedadesEndpoints
                 
                 var paginatedList = pagedResult.Items;
                     
-                var tasks = paginatedList.Select(async item =>
+                var resultList = new List<AlojamientoDto>();
+                foreach (var item in paginatedList)
                 {
                     decimal precioMin = 0;
                     string? imagenUrl = null;
 
-                    var roomsTask = alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
-                    var photosTask = alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
-
-                    await Task.WhenAll(roomsTask, photosTask);
-
-                    var roomsResponse = await roomsTask;
+                    var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
                     if (roomsResponse.IsSuccessStatusCode)
                     {
                         var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
@@ -366,7 +356,7 @@ public static class PropiedadesEndpoints
                         }
                     }
 
-                    var photosResponse = await photosTask;
+                    var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
                     if (photosResponse.IsSuccessStatusCode)
                     {
                         var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
@@ -376,7 +366,7 @@ public static class PropiedadesEndpoints
                         }
                     }
 
-                    return new AlojamientoDto
+                    resultList.Add(new AlojamientoDto
                     {
                         AlojamientoId = item.AlojamientoId,
                         Nombre = item.Nombre,
@@ -391,10 +381,8 @@ public static class PropiedadesEndpoints
                         TienePiscina = item.TienePiscina,
                         TieneParqueadero = item.TieneParqueadero,
                         Disponible = true
-                    };
-                });
-
-                var resultList = (await Task.WhenAll(tasks)).ToList();
+                    });
+                }
                 
                 return Results.Ok(ApiResponse<object>.Ok(new
                 {
@@ -433,17 +421,13 @@ public static class PropiedadesEndpoints
                 
                 var filtered = rawList.Where(a => a.SocioId == colaboradorId).ToList();
                 
-                var tasks = filtered.Select(async item =>
+                var resultList = new List<object>();
+                foreach (var item in filtered)
                 {
                     decimal precioMin = 0;
                     string? imagenUrl = null;
 
-                    var roomsTask = alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
-                    var photosTask = alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
-
-                    await Task.WhenAll(roomsTask, photosTask);
-
-                    var roomsResponse = await roomsTask;
+                    var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
                     if (roomsResponse.IsSuccessStatusCode)
                     {
                         var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
@@ -453,7 +437,7 @@ public static class PropiedadesEndpoints
                         }
                     }
 
-                    var photosResponse = await photosTask;
+                    var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
                     if (photosResponse.IsSuccessStatusCode)
                     {
                         var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
@@ -463,7 +447,7 @@ public static class PropiedadesEndpoints
                         }
                     }
 
-                    return new
+                    resultList.Add(new
                     {
                         propiedadId = item.AlojamientoId,
                         nombre = item.Nombre,
@@ -472,10 +456,8 @@ public static class PropiedadesEndpoints
                         direccion = item.Direccion,
                         estrellas = item.Estrellas,
                         estado = item.Estado == "Activo" || item.Estado == "Activa" ? "Activa" : "Inactiva"
-                    };
-                });
-
-                var resultList = await Task.WhenAll(tasks);
+                    });
+                }
                 return Results.Ok(ApiResponse<object>.Ok(resultList));
             }
             catch (Exception ex)
