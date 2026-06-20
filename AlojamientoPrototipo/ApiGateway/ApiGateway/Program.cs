@@ -10,6 +10,20 @@ using ApiGateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// ── Sobrescritura de URLs de Microservicios para Producción (Render Free Tier) ──
+if (builder.Environment.IsProduction())
+{
+    builder.Configuration["Microservices:UsuariosUrl"] = "https://usuarios-api-y75a.onrender.com";
+    builder.Configuration["Microservices:AlojamientosUrl"] = "https://alojamientos-api-y75a.onrender.com";
+    builder.Configuration["Microservices:ReservasUrl"] = "https://reservas-api-y75a.onrender.com";
+    builder.Configuration["Microservices:FacturacionUrl"] = "https://facturacion-api-y75a.onrender.com";
+
+    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "https://usuarios-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "https://alojamientos-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "https://reservas-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "https://facturacion-api-y75a.onrender.com/";
+}
+
 // ── Sanitización de URLs de Microservicios ──
 void SanitizeConfigurationUrl(string key)
 {
