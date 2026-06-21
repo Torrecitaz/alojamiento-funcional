@@ -1,0 +1,41 @@
+name: booking_mobile_flutter
+description: "Cliente móvil de AlojaExpress para reserva de alojamientos, desarrollado en Flutter."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Iconos predeterminados
+  cupertino_icons: ^1.0.6
+
+  # Red y API
+  dio: ^5.4.0
+
+  # Persistencia y seguridad
+  flutter_secure_storage: ^9.0.0
+
+  # Gestión de estado
+  provider: ^6.1.1
+
+  # Decodificador de JWT
+  jwt_decoder: ^2.0.1
+
+  # Formateadores de fecha y moneda
+  intl: ^0.19.0
+
+  # Generador de UUID para la cabecera de Idempotencia
+  uuid: ^4.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^3.0.0
+
+flutter:
+  uses-material-design: true
