@@ -28,18 +28,59 @@ public class CalendarioDataService : ICalendarioDataService
 
     public async Task<IEnumerable<CalendarioDisponibilidadDataModel>> CreateRangeAsync(IEnumerable<CalendarioDisponibilidadDataModel> models)
     {
-        var entities = models.Select(m => new CalendarioDisponibilidadEntity
-        {
-            HabitacionId = m.HabitacionId,
-            Fecha = m.Fecha,
-            Estado = m.Estado,
-            FechaModificacion = DateTime.UtcNow,
-            ReservaId = m.ReservaId,
-            Origen = string.IsNullOrEmpty(m.Origen) ? "ALOJAEXPRESS" : m.Origen
-        }).ToList();
+        var resultList = new List<CalendarioDisponibilidadEntity>();
+        var list = models.ToList();
+        if (list.Count == 0) return Array.Empty<CalendarioDisponibilidadDataModel>();
 
-        await _repository.AddRangeAsync(entities);
-        return entities.Select(AlojamientosMapper.ToDataModel);
+        var habitacionId = list[0].HabitacionId;
+        var fechas = list.Select(m => m.Fecha).ToList();
+        var minFecha = fechas.Min();
+        var maxFecha = fechas.Max();
+
+        // Buscar las entidades de disponibilidad ya existentes en la BD para este rango de fechas
+        var existingEntities = (await _repository.FindAsync(c => 
+            c.HabitacionId == habitacionId && 
+            c.Fecha >= minFecha && 
+            c.Fecha <= maxFecha)).ToDictionary(c => c.Fecha);
+
+        var entitiesToInsert = new List<CalendarioDisponibilidadEntity>();
+
+        foreach (var m in list)
+        {
+            if (existingEntities.TryGetValue(m.Fecha, out var existing))
+            {
+                // Si ya existe la fecha (por ejemplo, sembrada como 'Disponible'), actualizamos su estado
+                existing.Estado = m.Estado;
+                existing.FechaModificacion = DateTime.UtcNow;
+                existing.ReservaId = m.ReservaId;
+                existing.Origen = string.IsNullOrEmpty(m.Origen) ? "ALOJAEXPRESS" : m.Origen;
+                
+                await _repository.UpdateAsync(existing);
+                resultList.Add(existing);
+            }
+            else
+            {
+                // Si la fecha no existe en absoluto, creamos una nueva entidad
+                var newEntity = new CalendarioDisponibilidadEntity
+                {
+                    HabitacionId = m.HabitacionId,
+                    Fecha = m.Fecha,
+                    Estado = m.Estado,
+                    FechaModificacion = DateTime.UtcNow,
+                    ReservaId = m.ReservaId,
+                    Origen = string.IsNullOrEmpty(m.Origen) ? "ALOJAEXPRESS" : m.Origen
+                };
+                entitiesToInsert.Add(newEntity);
+                resultList.Add(newEntity);
+            }
+        }
+
+        if (entitiesToInsert.Count > 0)
+        {
+            await _repository.AddRangeAsync(entitiesToInsert);
+        }
+
+        return resultList.Select(AlojamientosMapper.ToDataModel);
     }
 
     public async Task<bool> ExistsBloqueoOcupacionAsync(int habitacionId, DateOnly fechaInicio, DateOnly fechaFin)
