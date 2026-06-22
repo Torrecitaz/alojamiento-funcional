@@ -119,14 +119,11 @@ public record RegistrarClienteRequest
     [Required]
     public string NombreCompleto { get; init; } = string.Empty;
     
-    [Required]
-    public string Cedula { get; init; } = string.Empty;
+    public string? Cedula { get; init; }
     
-    [Required]
-    public string Telefono { get; init; } = string.Empty;
+    public string? Telefono { get; init; }
     
-    [Required]
-    public string Domicilio { get; init; } = string.Empty;
+    public string? Domicilio { get; init; }
 }
 
 public record ReservaDto
