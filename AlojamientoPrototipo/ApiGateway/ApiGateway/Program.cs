@@ -13,15 +13,15 @@ var builder = WebApplication.CreateBuilder(args);
 // ── Sobrescritura de URLs de Microservicios para Producción (Render Free Tier) ──
 if (builder.Environment.IsProduction())
 {
-    builder.Configuration["Microservices:UsuariosUrl"] = "https://usuarios-api-y75a.onrender.com";
-    builder.Configuration["Microservices:AlojamientosUrl"] = "https://alojamientos-api-y75a.onrender.com";
-    builder.Configuration["Microservices:ReservasUrl"] = "https://reservas-api-y75a.onrender.com";
-    builder.Configuration["Microservices:FacturacionUrl"] = "https://facturacion-api-y75a.onrender.com";
+    builder.Configuration["Microservices:UsuariosUrl"] = "http://usuarios-api-y75a:8080";
+    builder.Configuration["Microservices:AlojamientosUrl"] = "http://alojamientos-api-y75a:8080";
+    builder.Configuration["Microservices:ReservasUrl"] = "http://reservas-api-y75a:8080";
+    builder.Configuration["Microservices:FacturacionUrl"] = "http://facturacion-api-y75a:8080";
 
-    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "https://usuarios-api-y75a.onrender.com/";
-    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "https://alojamientos-api-y75a.onrender.com/";
-    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "https://reservas-api-y75a.onrender.com/";
-    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "https://facturacion-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "http://usuarios-api-y75a:8080/";
+    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "http://alojamientos-api-y75a:8080/";
+    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "http://reservas-api-y75a:8080/";
+    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "http://facturacion-api-y75a:8080/";
 }
 
 // ── Sanitización de URLs de Microservicios ──
@@ -103,36 +103,39 @@ builder.Services.AddSwaggerGen(options =>
     });
 });
 
+// Register DelegatingHandler for internal routing and wake-up
+builder.Services.AddTransient<RenderInternalRoutingHandler>();
+
 // Configure Named HttpClients for microservices
 builder.Services.AddHttpClient("Usuarios", client =>
 {
     var url = builder.Configuration["Microservices:UsuariosUrl"] ?? "http://localhost:5001";
     client.BaseAddress = new Uri(url);
-});
+}).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("Alojamientos", client =>
 {
     var url = builder.Configuration["Microservices:AlojamientosUrl"] ?? "http://localhost:5002";
     client.BaseAddress = new Uri(url);
-});
+}).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("Reservas", client =>
 {
     var url = builder.Configuration["Microservices:ReservasUrl"] ?? "http://localhost:5003";
     client.BaseAddress = new Uri(url);
-});
+}).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("Facturacion", client =>
 {
     var url = builder.Configuration["Microservices:FacturacionUrl"] ?? "http://localhost:5004";
     client.BaseAddress = new Uri(url);
-});
+}).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("BookingIntegration", client =>
 {
     var url = builder.Configuration["Microservices:BookingIntegrationUrl"] ?? "http://localhost:5005";
     client.BaseAddress = new Uri(url);
-});
+}).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 // Habilitar SignalR y Bus de Eventos con MassTransit
 builder.Services.AddSingleton<Shared.Kernel.Services.ICloudinaryService, Shared.Kernel.Services.CloudinaryService>();
