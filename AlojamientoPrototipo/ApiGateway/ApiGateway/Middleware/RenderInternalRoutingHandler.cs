@@ -1,74 +1,96 @@
 using System;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
-using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace ApiGateway.Middleware;
 
 public class RenderInternalRoutingHandler : DelegatingHandler
 {
-    private readonly IConfiguration _configuration;
     private readonly ILogger<RenderInternalRoutingHandler> _logger;
-    private readonly HttpClient _wakeupClient;
 
-    public RenderInternalRoutingHandler(IConfiguration configuration, ILogger<RenderInternalRoutingHandler> logger)
+    public RenderInternalRoutingHandler(ILogger<RenderInternalRoutingHandler> logger)
     {
-        _configuration = configuration;
         _logger = logger;
-        _wakeupClient = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var requestUrl = request.RequestUri?.ToString() ?? "";
+        int maxConnectionRetries = 15; // 15 reintentos * 4s = 60s total para cold starts
+        int maxRateLimitRetries = 5;
 
-        try
+        int connectionAttempt = 0;
+        int rateLimitAttempt = 0;
+
+        while (true)
         {
-            // Intentar enviar la petición
-            return await base.SendAsync(request, cancellationToken);
-        }
-        catch (Exception ex) when (IsConnectionFailure(ex))
-        {
-            _logger.LogWarning("Falla de conexión detectada hacia {Url}. El microservicio podría estar inactivo (durmiendo). Iniciando despertar público...", requestUrl);
-
-            // Obtener la URL pública del microservicio para despertarlo
-            var publicUrl = GetPublicUrlForRequest(request.RequestUri);
-            if (!string.IsNullOrEmpty(publicUrl))
+            try
             {
-                // Disparar ping público de fondo sin bloquear el hilo principal de inmediato
-                _ = WakeUpServiceAsync(publicUrl);
-            }
+                var response = await base.SendAsync(request, cancellationToken);
 
-            // Bucle de reintento: esperar a que el servicio se levante
-            int maxRetries = 12; // 12 reintentos * 5s = 60 segundos total (Render tarda 50s promedio en cold start)
-            for (int i = 1; i <= maxRetries; i++)
-            {
-                _logger.LogInformation("Reintentando petición interna a {Url} (Intento {Attempt}/{Max}) en 5 segundos...", requestUrl, i, maxRetries);
-                await Task.Delay(5000, cancellationToken);
-
-                try
+                // Si detectamos 429 Too Many Requests de Render/Cloudflare, reintentar con backoff
+                if (response.StatusCode == HttpStatusCode.TooManyRequests)
                 {
-                    // Debemos clonar la petición porque HttpRequestMessage no se puede reutilizar directamente
-                    var clonedRequest = CloneRequest(request);
-                    var response = await base.SendAsync(clonedRequest, cancellationToken);
-                    _logger.LogInformation("¡Conexión interna exitosa hacia {Url} en el intento {Attempt}!", requestUrl, i);
-                    return response;
-                }
-                catch (Exception retryEx) when (IsConnectionFailure(retryEx))
-                {
-                    if (i == maxRetries)
+                    rateLimitAttempt++;
+                    if (rateLimitAttempt > maxRateLimitRetries)
                     {
-                        _logger.LogError("No se pudo conectar al microservicio en {Url} tras {Max} intentos de espera.", requestUrl, maxRetries);
-                        throw;
+                        _logger.LogError("Petición a {Url} falló con 429 Too Many Requests tras {Max} reintentos de rate-limit.", requestUrl, maxRateLimitRetries);
+                        return response;
                     }
-                }
-            }
 
-            throw;
+                    // Determinar tiempo de espera respetando Retry-After si viene en la cabecera
+                    double delaySeconds = Math.Pow(2, rateLimitAttempt); // 2s, 4s, 8s, 16s...
+                    if (response.Headers.RetryAfter != null)
+                    {
+                        if (response.Headers.RetryAfter.Delta.HasValue)
+                        {
+                            delaySeconds = response.Headers.RetryAfter.Delta.Value.TotalSeconds;
+                        }
+                        else if (response.Headers.RetryAfter.Date.HasValue)
+                        {
+                            delaySeconds = (response.Headers.RetryAfter.Date.Value - DateTimeOffset.UtcNow).TotalSeconds;
+                        }
+                    }
+
+                    if (delaySeconds <= 0 || delaySeconds > 30)
+                    {
+                        delaySeconds = Math.Pow(2, rateLimitAttempt);
+                    }
+
+                    _logger.LogWarning("La petición a {Url} retornó 429 (Too Many Requests). Reintentando en {Delay} segundos (Intento {Attempt}/{Max})...", 
+                        requestUrl, delaySeconds, rateLimitAttempt, maxRateLimitRetries);
+
+                    await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
+
+                    // Recrear la petición para el reintento
+                    request = CloneRequest(request);
+                    continue;
+                }
+
+                return response;
+            }
+            catch (Exception ex) when (IsConnectionFailure(ex))
+            {
+                connectionAttempt++;
+                if (connectionAttempt > maxConnectionRetries)
+                {
+                    _logger.LogError(ex, "Falla de conexión persistente a {Url} tras {Max} intentos de cold start.", requestUrl, maxConnectionRetries);
+                    throw;
+                }
+
+                _logger.LogWarning("Falla de conexión a {Url} (microservicio durmiendo o cargando). Esperando 4 segundos para reintentar... (Intento {Attempt}/{Max})", 
+                    requestUrl, connectionAttempt, maxConnectionRetries);
+
+                await Task.Delay(4000, cancellationToken);
+
+                // Recrear la petición para el reintento
+                request = CloneRequest(request);
+            }
         }
     }
 
@@ -79,33 +101,6 @@ public class RenderInternalRoutingHandler : DelegatingHandler
                ex is TaskCanceledException ||
                ex.InnerException is System.Net.Sockets.SocketException ||
                ex.InnerException is System.IO.IOException;
-    }
-
-    private string? GetPublicUrlForRequest(Uri? uri)
-    {
-        if (uri == null) return null;
-        var host = uri.Host;
-
-        // Mapear hosts internos de Render a sus correspondientes URLs públicas de despertar (/health)
-        if (host.Contains("usuarios-api-y75a")) return "https://usuarios-api-y75a.onrender.com/health";
-        if (host.Contains("alojamientos-api-y75a")) return "https://alojamientos-api-y75a.onrender.com/health";
-        if (host.Contains("reservas-api-y75a")) return "https://reservas-api-y75a.onrender.com/health";
-        if (host.Contains("facturacion-api-y75a")) return "https://facturacion-api-y75a.onrender.com/health";
-
-        return null;
-    }
-
-    private async Task WakeUpServiceAsync(string publicUrl)
-    {
-        try
-        {
-            _logger.LogInformation("[WakeUp] Enviando ping público para despertar servicio: {Url}", publicUrl);
-            await _wakeupClient.GetAsync(publicUrl);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning("[WakeUp] El ping público de despertar a {Url} terminó con: {Message}", publicUrl, ex.Message);
-        }
     }
 
     private HttpRequestMessage CloneRequest(HttpRequestMessage req)
