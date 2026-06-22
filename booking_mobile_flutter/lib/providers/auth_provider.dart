@@ -47,7 +47,11 @@ class AuthProvider extends ChangeNotifier {
       });
 
       if (response.statusCode == 200 || response.statusCode == 201) {
-        final data = response.data;
+        final rawData = response.data;
+        final Map<String, dynamic> data = (rawData != null && rawData is Map && rawData.containsKey('datos'))
+            ? Map<String, dynamic>.from(rawData['datos'])
+            : Map<String, dynamic>.from(rawData);
+
         final token = data['token'] as String;
 
         Map<String, dynamic> decoded = JwtDecoder.decode(token);
@@ -141,8 +145,9 @@ class AuthProvider extends ChangeNotifier {
       String errorMsg = "Error al registrar la cuenta.";
       if (e is DioException) {
         final data = e.response?.data;
-        if (data?['errores'] != null && data['errores'] is List) {
-          errorMsg = (data['errores'] as List).join('\n');
+        final errors = data?['errores'] ?? data?['errors'];
+        if (errors != null && errors is List) {
+          errorMsg = (errors as List).join('\n');
         } else {
           errorMsg = data?['mensaje'] ?? data?['message'] ?? errorMsg;
         }

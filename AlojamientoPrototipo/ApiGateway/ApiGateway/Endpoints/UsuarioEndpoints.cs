@@ -175,5 +175,55 @@ public static class UsuarioEndpoints
         .WithName("GetPerfilCliente_V2")
         .WithTags("Clientes")
         .WithOpenApi();
+
+        // Login de usuario
+        var loginHandler = async (
+            LoginRequestDto request,
+            IHttpClientFactory httpClientFactory) =>
+        {
+            try
+            {
+                var usuariosClient = httpClientFactory.CreateClient("Usuarios");
+                var response = await usuariosClient.PostAsJsonAsync("api/v1/Auth/login", request);
+                
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errContent = await response.Content.ReadAsStringAsync();
+                    string errorMsg = "Credenciales inválidas";
+                    List<string> errorsList = new();
+                    try
+                    {
+                        var parsedErr = JsonSerializer.Deserialize<Dictionary<string, object>>(errContent);
+                        if (parsedErr != null && parsedErr.TryGetValue("mensaje", out var msgObj))
+                        {
+                            errorMsg = msgObj.ToString() ?? errorMsg;
+                        }
+                    }
+                    catch
+                    {
+                        // Fallback
+                    }
+                    errorsList.Add(errorMsg);
+                    return Results.Json(ApiResponse<object>.Fail(errorMsg, errorsList), statusCode: (int)response.StatusCode);
+                }
+                
+                var downstreamResult = await response.Content.ReadFromJsonAsync<DownstreamLoginResponse>();
+                if (downstreamResult == null || downstreamResult.Datos == null)
+                {
+                    return Results.Json(ApiResponse<object>.Fail("No se pudo obtener la información de inicio de sesión."), statusCode: 500);
+                }
+                
+                return Results.Ok(ApiResponse<LoginResponseDto>.Ok(downstreamResult.Datos));
+            }
+            catch (Exception ex)
+            {
+                return Results.Json(ApiResponse<object>.Fail($"Error interno: {ex.Message}"), statusCode: 500);
+            }
+        };
+
+        app.MapPost("/api/v2/auth-alojaexpress/login", loginHandler)
+        .WithName("Login_V2")
+        .WithTags("Auth")
+        .WithOpenApi();
     }
 }

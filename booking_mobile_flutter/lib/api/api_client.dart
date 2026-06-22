@@ -5,8 +5,8 @@ import 'package:uuid/uuid.dart';
 class ApiClient {
   final Dio dio = Dio(BaseOptions(
     baseUrl: 'https://api-gateway-y75a.onrender.com/api/v2',
-    connectTimeout: const Duration(seconds: 45),
-    receiveTimeout: const Duration(seconds: 45),
+    connectTimeout: const Duration(seconds: 90),
+    receiveTimeout: const Duration(seconds: 90),
   ));
 
   final FlutterSecureStorage _storage = const FlutterSecureStorage();

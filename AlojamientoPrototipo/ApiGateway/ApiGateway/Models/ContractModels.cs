@@ -256,3 +256,29 @@ public record ReservaBookingRequestDtoV2
     public bool LlevaMascotas { get; init; }
     public string? CodigoDescuento { get; init; }
 }
+
+public record LoginRequestDto
+{
+    [Required]
+    public string Email { get; init; } = string.Empty;
+    
+    [Required]
+    public string Password { get; init; } = string.Empty;
+}
+
+public record LoginResponseDto
+{
+    public string Token { get; init; } = string.Empty;
+    public string NombreCompleto { get; init; } = string.Empty;
+    public string Email { get; init; } = string.Empty;
+    public List<string> Roles { get; init; } = new();
+    public int? ClienteId { get; init; }
+    public int? ColaboradorId { get; init; }
+}
+
+public class DownstreamLoginResponse
+{
+    [JsonPropertyName("datos")]
+    public LoginResponseDto? Datos { get; set; }
+}
+
