@@ -11,6 +11,9 @@ using ApiGateway.Middleware;
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Sobrescritura de URLs de Microservicios para Producción (Render Free Tier) ──
+// Comentado para permitir el uso de la red privada interna de Render (inyectada por variables de entorno)
+// y evitar errores 429 (Too Many Requests) del enrutador público de Render.
+/*
 if (builder.Environment.IsProduction())
 {
     builder.Configuration["Microservices:UsuariosUrl"] = "https://usuarios-api-y75a.onrender.com";
@@ -23,6 +26,7 @@ if (builder.Environment.IsProduction())
     builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "https://reservas-api-y75a.onrender.com/";
     builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "https://facturacion-api-y75a.onrender.com/";
 }
+*/
 
 // ── Sanitización de URLs de Microservicios ──
 void SanitizeConfigurationUrl(string key)
