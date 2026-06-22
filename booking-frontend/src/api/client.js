@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v2';
-const client = axios.create({ baseURL: BASE_URL, timeout: 45000 });
+const client = axios.create({ baseURL: BASE_URL, timeout: 90000 }); // 90 segundos para tolerar el cold start de Render Free Tier
 
 // Inyectar JWT en cada request
 // Inyectar JWT y cabecera de idempotencia en peticiones
