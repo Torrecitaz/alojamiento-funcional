@@ -34,7 +34,8 @@ public static class FacturacionEndpoints
                     return Results.Json(ApiResponse<FacturaDto>.Fail($"Error al obtener factura: {factResponse.ReasonPhrase}"), statusCode: (int)factResponse.StatusCode);
                 }
                 
-                var invoice = await factResponse.Content.ReadFromJsonAsync<FacturaInternalResponse>();
+                var invoices = await factResponse.Content.ReadFromJsonAsync<List<FacturaInternalResponse>>();
+                var invoice = invoices?.FirstOrDefault();
                 if (invoice == null)
                 {
                     return Results.Json(ApiResponse<FacturaDto>.Fail("Factura no encontrada para esa reserva."), statusCode: 404);
