@@ -9,6 +9,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.Extensions.Caching.Memory;
 using ApiGateway.Models;
 using ApiGateway.Models.Internal;
 
@@ -21,6 +22,7 @@ public static class PropiedadesEndpoints
         // 1. Buscar alojamientos (API pública con DTO unificado)
         var buscarAlojamientosHandler = async (
             IHttpClientFactory httpClientFactory,
+            IMemoryCache cache,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20,
             [FromQuery] string? search = null,
@@ -61,33 +63,52 @@ public static class PropiedadesEndpoints
                 
                 var paginatedList = pagedResult.Items;
                     
-                var resultList = new List<AlojamientoDto>();
-                foreach (var item in paginatedList)
+                var tasks = paginatedList.Select(async item =>
                 {
                     decimal precioMin = 0;
                     string? imagenUrl = null;
 
-                    var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
-                    if (roomsResponse.IsSuccessStatusCode)
+                    // 1. Obtener Habitaciones (con caché de 10 min)
+                    var cacheKeyRooms = $"rooms:{item.AlojamientoId}";
+                    if (!cache.TryGetValue(cacheKeyRooms, out List<HabitacionInternalResponse>? rooms))
                     {
-                        var rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
-                        if (rooms != null && rooms.Count > 0)
+                        var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
+                        if (roomsResponse.IsSuccessStatusCode)
                         {
-                            precioMin = rooms.Min(r => r.PrecioNoche);
+                            rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+                            if (rooms != null)
+                            {
+                                cache.Set(cacheKeyRooms, rooms, TimeSpan.FromMinutes(10));
+                            }
                         }
                     }
 
-                    var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
-                    if (photosResponse.IsSuccessStatusCode)
+                    if (rooms != null && rooms.Count > 0)
                     {
-                        var photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
-                        if (photos != null && photos.Count > 0)
+                        precioMin = rooms.Min(r => r.PrecioNoche);
+                    }
+
+                    // 2. Obtener Fotos (con caché de 10 min)
+                    var cacheKeyPhotos = $"photos:{item.AlojamientoId}";
+                    if (!cache.TryGetValue(cacheKeyPhotos, out List<FotoInternalResponse>? photos))
+                    {
+                        var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
+                        if (photosResponse.IsSuccessStatusCode)
                         {
-                            imagenUrl = photos.OrderBy(p => p.Orden).First().Url;
+                            photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
+                            if (photos != null)
+                            {
+                                cache.Set(cacheKeyPhotos, photos, TimeSpan.FromMinutes(10));
+                            }
                         }
                     }
 
-                    resultList.Add(new AlojamientoDto
+                    if (photos != null && photos.Count > 0)
+                    {
+                        imagenUrl = photos.OrderBy(p => p.Orden).First().Url;
+                    }
+
+                    return new AlojamientoDto
                     {
                         AlojamientoId = item.AlojamientoId,
                         Nombre = item.Nombre,
@@ -102,8 +123,11 @@ public static class PropiedadesEndpoints
                         TienePiscina = item.TienePiscina,
                         TieneParqueadero = item.TieneParqueadero,
                         Disponible = true
-                    });
-                }
+                    };
+                });
+
+                var mappedList = await Task.WhenAll(tasks);
+                var resultList = mappedList.ToList();
                 
                 return Results.Ok(ApiResponse<List<AlojamientoDto>>.Ok(resultList));
             }
