@@ -27,11 +27,20 @@ public class RenderInternalRoutingHandler : DelegatingHandler
         int connectionAttempt = 0;
         int rateLimitAttempt = 0;
 
+        // Buffer the request content bytes once before any attempts to avoid stream consumption issues
+        byte[]? requestContentBytes = null;
+        if (request.Content != null)
+        {
+            requestContentBytes = await request.Content.ReadAsByteArrayAsync(cancellationToken);
+        }
+
         while (true)
         {
             try
             {
-                var response = await base.SendAsync(request, cancellationToken);
+                // Recreate the request for the current attempt to ensure fresh stream/content
+                var attemptRequest = CloneRequest(request, requestContentBytes);
+                var response = await base.SendAsync(attemptRequest, cancellationToken);
 
                 // Si detectamos 429 Too Many Requests de Render/Cloudflare, reintentar con backoff
                 if (response.StatusCode == HttpStatusCode.TooManyRequests)
@@ -66,9 +75,6 @@ public class RenderInternalRoutingHandler : DelegatingHandler
                         requestUrl, delaySeconds, rateLimitAttempt, maxRateLimitRetries);
 
                     await Task.Delay(TimeSpan.FromSeconds(delaySeconds), cancellationToken);
-
-                    // Recrear la petición para el reintento
-                    request = CloneRequest(request);
                     continue;
                 }
 
@@ -79,7 +85,7 @@ public class RenderInternalRoutingHandler : DelegatingHandler
                 connectionAttempt++;
                 if (connectionAttempt > maxConnectionRetries)
                 {
-                    _logger.LogError(ex, "Falla de conexión persistente a {Url} tras {Max} intentos de cold start.", requestUrl, maxConnectionRetries);
+                    _logger.LogError(ex, "Falla de conexión persistentente a {Url} tras {Max} intentos de cold start.", requestUrl, maxConnectionRetries);
                     throw;
                 }
 
@@ -87,9 +93,6 @@ public class RenderInternalRoutingHandler : DelegatingHandler
                     requestUrl, connectionAttempt, maxConnectionRetries);
 
                 await Task.Delay(4000, cancellationToken);
-
-                // Recrear la petición para el reintento
-                request = CloneRequest(request);
             }
         }
     }
@@ -103,13 +106,22 @@ public class RenderInternalRoutingHandler : DelegatingHandler
                ex.InnerException is System.IO.IOException;
     }
 
-    private HttpRequestMessage CloneRequest(HttpRequestMessage req)
+    private HttpRequestMessage CloneRequest(HttpRequestMessage req, byte[]? contentBytes)
     {
         var clone = new HttpRequestMessage(req.Method, req.RequestUri)
         {
-            Content = req.Content,
             Version = req.Version
         };
+
+        if (contentBytes != null && req.Content != null)
+        {
+            var newContent = new ByteArrayContent(contentBytes);
+            foreach (var header in req.Content.Headers)
+            {
+                newContent.Headers.TryAddWithoutValidation(header.Key, header.Value);
+            }
+            clone.Content = newContent;
+        }
 
         foreach (var header in req.Headers)
         {
