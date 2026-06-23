@@ -63,7 +63,7 @@ public static class PropiedadesEndpoints
                 }
                 
                 var paginatedList = pagedResult.Items;
-                using var semaphore = new SemaphoreSlim(3);
+                using var semaphore = new SemaphoreSlim(1);
                     
                 var tasks = paginatedList.Select(async item =>
                 {
