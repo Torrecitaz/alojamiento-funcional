@@ -89,11 +89,47 @@ public class RenderInternalRoutingHandler : DelegatingHandler
                     throw;
                 }
 
+                // Try to wake up the service if its host matches a known private Render service name
+                var host = request.RequestUri?.Host;
+                if (!string.IsNullOrEmpty(host))
+                {
+                    TryWakeUpService(host);
+                }
+
                 _logger.LogWarning("Falla de conexión a {Url} (microservicio durmiendo o cargando). Esperando 4 segundos para reintentar... (Intento {Attempt}/{Max})", 
                     requestUrl, connectionAttempt, maxConnectionRetries);
 
                 await Task.Delay(4000, cancellationToken);
             }
+        }
+    }
+
+    private static readonly Dictionary<string, string> WakeUpUrls = new(StringComparer.OrdinalIgnoreCase)
+    {
+        { "alojaexpress-usuarios", "https://usuarios-api-y75a.onrender.com/" },
+        { "alojaexpress-alojamientos", "https://alojamientos-api-y75a.onrender.com/" },
+        { "alojaexpress-reservas", "https://reservas-api-y75a.onrender.com/" },
+        { "alojaexpress-facturacion", "https://facturacion-api-y75a.onrender.com/" }
+    };
+
+    private void TryWakeUpService(string host)
+    {
+        if (WakeUpUrls.TryGetValue(host, out var wakeUpUrl))
+        {
+            _logger.LogInformation("[WAKEUP] Sending background wake-up ping to public URL '{WakeUpUrl}' for service '{Host}'", wakeUpUrl, host);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(5) };
+                    await client.GetAsync(wakeUpUrl);
+                }
+                catch (Exception ex)
+                {
+                    // Ignore exceptions since a timeout/error is normal for a sleeping service, but Render will still trigger wakeup
+                    _logger.LogDebug("[WAKEUP] Ping to {WakeUpUrl} completed/failed: {Message}", wakeUpUrl, ex.Message);
+                }
+            });
         }
     }
 
