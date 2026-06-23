@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
@@ -62,6 +63,7 @@ public static class PropiedadesEndpoints
                 }
                 
                 var paginatedList = pagedResult.Items;
+                using var semaphore = new SemaphoreSlim(3);
                     
                 var tasks = paginatedList.Select(async item =>
                 {
@@ -72,14 +74,25 @@ public static class PropiedadesEndpoints
                     var cacheKeyRooms = $"rooms:{item.AlojamientoId}";
                     if (!cache.TryGetValue(cacheKeyRooms, out List<HabitacionInternalResponse>? rooms))
                     {
-                        var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
-                        if (roomsResponse.IsSuccessStatusCode)
+                        await semaphore.WaitAsync();
+                        try
                         {
-                            rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
-                            if (rooms != null)
+                            if (!cache.TryGetValue(cacheKeyRooms, out rooms))
                             {
-                                cache.Set(cacheKeyRooms, rooms, TimeSpan.FromMinutes(10));
+                                var roomsResponse = await alojamientosClient.GetAsync($"api/v1/Habitaciones/alojamiento/{item.AlojamientoId}");
+                                if (roomsResponse.IsSuccessStatusCode)
+                                {
+                                    rooms = await roomsResponse.Content.ReadFromJsonAsync<List<HabitacionInternalResponse>>();
+                                    if (rooms != null)
+                                    {
+                                        cache.Set(cacheKeyRooms, rooms, TimeSpan.FromMinutes(10));
+                                    }
+                                }
                             }
+                        }
+                        finally
+                        {
+                            semaphore.Release();
                         }
                     }
 
@@ -92,14 +105,25 @@ public static class PropiedadesEndpoints
                     var cacheKeyPhotos = $"photos:{item.AlojamientoId}";
                     if (!cache.TryGetValue(cacheKeyPhotos, out List<FotoInternalResponse>? photos))
                     {
-                        var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
-                        if (photosResponse.IsSuccessStatusCode)
+                        await semaphore.WaitAsync();
+                        try
                         {
-                            photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
-                            if (photos != null)
+                            if (!cache.TryGetValue(cacheKeyPhotos, out photos))
                             {
-                                cache.Set(cacheKeyPhotos, photos, TimeSpan.FromMinutes(10));
+                                var photosResponse = await alojamientosClient.GetAsync($"api/v1/Fotos/alojamiento/{item.AlojamientoId}");
+                                if (photosResponse.IsSuccessStatusCode)
+                                {
+                                    photos = await photosResponse.Content.ReadFromJsonAsync<List<FotoInternalResponse>>();
+                                    if (photos != null)
+                                    {
+                                        cache.Set(cacheKeyPhotos, photos, TimeSpan.FromMinutes(10));
+                                    }
+                                }
                             }
+                        }
+                        finally
+                        {
+                            semaphore.Release();
                         }
                     }
 

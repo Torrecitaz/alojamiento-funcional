@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -30,18 +31,31 @@ public class CheckoutMiddleware
         {
             var httpClientFactory = context.RequestServices.GetRequiredService<IHttpClientFactory>();
             var logger = context.RequestServices.GetRequiredService<ILoggerFactory>().CreateLogger<CheckoutMiddleware>();
-            var jsonOptions = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+            var jsonOptions = new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true,
+                NumberHandling = JsonNumberHandling.AllowReadingFromString
+            };
 
-            CheckoutBookingRequest? request;
+            string rawBody = "";
+            CheckoutBookingRequest? request = null;
             try
             {
-                request = await JsonSerializer.DeserializeAsync<CheckoutBookingRequest>(
-                    context.Request.Body, jsonOptions);
+                context.Request.EnableBuffering();
+                using (var reader = new StreamReader(context.Request.Body, System.Text.Encoding.UTF8, leaveOpen: true))
+                {
+                    rawBody = await reader.ReadToEndAsync();
+                    context.Request.Body.Position = 0;
+                }
+                
+                logger.LogInformation("[CHECKOUT] Received raw body: {RawBody}", rawBody);
+                request = JsonSerializer.Deserialize<CheckoutBookingRequest>(rawBody, jsonOptions);
             }
-            catch
+            catch (Exception ex)
             {
+                logger.LogError(ex, "[CHECKOUT] Deserialization failed. Raw body: {RawBody}", rawBody);
                 context.Response.StatusCode = 400;
-                await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = "Payload inválido." });
+                await context.Response.WriteAsJsonAsync(new { success = false, estado = "FALLIDA_PROVEEDOR", mensaje = $"Payload inválido: {ex.Message}." });
                 return;
             }
 
