@@ -213,6 +213,48 @@ app.UseCors("AllowAll");
 
 app.MapHealthChecks("/health");
 
+app.MapGet("/api/test-connection", async (IHttpClientFactory httpClientFactory) =>
+{
+    var client = httpClientFactory.CreateClient();
+    var results = new Dictionary<string, object>();
+
+    var urlsToTest = new[]
+    {
+        "http://usuarios-api-y75a:8080/health",
+        "http://reservas-api-y75a:8080/health",
+        "http://alojamientos-api-y75a:8080/health",
+        "http://facturacion-api-y75a:8080/health"
+    };
+
+    foreach (var url in urlsToTest)
+    {
+        try
+        {
+            var response = await client.GetAsync(url);
+            results[url] = new
+            {
+                success = true,
+                statusCode = (int)response.StatusCode,
+                phrase = response.ReasonPhrase
+            };
+        }
+        catch (Exception ex)
+        {
+            var inner = ex.InnerException;
+            results[url] = new
+            {
+                success = false,
+                errorType = ex.GetType().Name,
+                errorMessage = ex.Message,
+                innerErrorType = inner?.GetType().Name,
+                innerErrorMessage = inner?.Message
+            };
+        }
+    }
+
+    return Results.Ok(results);
+});
+
 app.MapHub<BookingHub>("/bookingHub");
 
 // ── Middleware de idempotencia y Checkout ANTES de YARP ──
