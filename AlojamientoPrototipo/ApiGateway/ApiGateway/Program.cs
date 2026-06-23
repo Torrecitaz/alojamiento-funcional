@@ -110,31 +110,42 @@ builder.Services.AddHttpClient("Usuarios", client =>
 {
     var url = builder.Configuration["Microservices:UsuariosUrl"] ?? "http://localhost:5001";
     client.BaseAddress = new Uri(url);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 }).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("Alojamientos", client =>
 {
     var url = builder.Configuration["Microservices:AlojamientosUrl"] ?? "http://localhost:5002";
     client.BaseAddress = new Uri(url);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 }).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("Reservas", client =>
 {
     var url = builder.Configuration["Microservices:ReservasUrl"] ?? "http://localhost:5003";
     client.BaseAddress = new Uri(url);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 }).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("Facturacion", client =>
 {
     var url = builder.Configuration["Microservices:FacturacionUrl"] ?? "http://localhost:5004";
     client.BaseAddress = new Uri(url);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 }).AddHttpMessageHandler<RenderInternalRoutingHandler>();
 
 builder.Services.AddHttpClient("BookingIntegration", client =>
 {
     var url = builder.Configuration["Microservices:BookingIntegrationUrl"] ?? "http://localhost:5005";
     client.BaseAddress = new Uri(url);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
 }).AddHttpMessageHandler<RenderInternalRoutingHandler>();
+
+// Configure default HttpClient (for unnamed clients resolved via IHttpClientFactory)
+builder.Services.AddHttpClient("", client =>
+{
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36");
+});
 
 // Habilitar SignalR y Bus de Eventos con MassTransit
 builder.Services.AddSingleton<Shared.Kernel.Services.ICloudinaryService, Shared.Kernel.Services.CloudinaryService>();
@@ -212,48 +223,6 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 
 app.MapHealthChecks("/health");
-
-app.MapGet("/api/test-connection", async (IHttpClientFactory httpClientFactory) =>
-{
-    var client = httpClientFactory.CreateClient();
-    var results = new Dictionary<string, object>();
-
-    var urlsToTest = new[]
-    {
-        "http://srv-d8976t6gvqtc73bmv43g:8080/health",
-        "http://srv-d8976t6gvqtc73bmv43g.render.internal:8080/health",
-        "http://srv-d8976t6gvqtc73bmv43g.internal:8080/health",
-        "http://srv-d8976t6gvqtc73bmv43g.local:8080/health"
-    };
-
-    foreach (var url in urlsToTest)
-    {
-        try
-        {
-            var response = await client.GetAsync(url);
-            results[url] = new
-            {
-                success = true,
-                statusCode = (int)response.StatusCode,
-                phrase = response.ReasonPhrase
-            };
-        }
-        catch (Exception ex)
-        {
-            var inner = ex.InnerException;
-            results[url] = new
-            {
-                success = false,
-                errorType = ex.GetType().Name,
-                errorMessage = ex.Message,
-                innerErrorType = inner?.GetType().Name,
-                innerErrorMessage = inner?.Message
-            };
-        }
-    }
-
-    return Results.Ok(results);
-});
 
 app.MapHub<BookingHub>("/bookingHub");
 
