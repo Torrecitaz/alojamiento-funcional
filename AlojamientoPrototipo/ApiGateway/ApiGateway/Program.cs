@@ -247,6 +247,46 @@ app.MapGet("/api/config-debug", (IConfiguration config) =>
     return Results.Ok(debugInfo);
 });
 
+app.MapGet("/api/test-connection", async (IHttpClientFactory httpClientFactory) =>
+{
+    var client = httpClientFactory.CreateClient();
+    var results = new Dictionary<string, object>();
+
+    var urlsToTest = new[]
+    {
+        "http://srv-d8976t6gvqtc73bmv43g:8080/health",
+        "https://usuarios-api-y75a.onrender.com/health"
+    };
+
+    foreach (var url in urlsToTest)
+    {
+        try
+        {
+            var response = await client.GetAsync(url);
+            results[url] = new
+            {
+                success = true,
+                statusCode = (int)response.StatusCode,
+                phrase = response.ReasonPhrase
+            };
+        }
+        catch (Exception ex)
+        {
+            var inner = ex.InnerException;
+            results[url] = new
+            {
+                success = false,
+                errorType = ex.GetType().Name,
+                errorMessage = ex.Message,
+                innerErrorType = inner?.GetType().Name,
+                innerErrorMessage = inner?.Message
+            };
+        }
+    }
+
+    return Results.Ok(results);
+});
+
 app.MapHub<BookingHub>("/bookingHub");
 
 // ── Middleware de idempotencia y Checkout ANTES de YARP ──
