@@ -12,6 +12,7 @@ public class BookingDbHelper
 {
     private readonly string _connectionString;
     private readonly ILogger<BookingDbHelper> _logger;
+    private readonly IConfiguration _configuration;
     private Guid? _providerId;
     private Guid? _categoryId;
 
@@ -20,6 +21,7 @@ public class BookingDbHelper
         _connectionString = configuration.GetConnectionString("ConexionBooking") 
             ?? throw new ArgumentNullException(nameof(configuration), "Connection string ConexionBooking is missing");
         _logger = logger;
+        _configuration = configuration;
     }
 
     private async Task<NpgsqlConnection> GetConnectionAsync()
@@ -35,23 +37,40 @@ public class BookingDbHelper
         {
             using var conn = await GetConnectionAsync();
 
-            // 1. Ensure Provider exists
+            // Determine correct public gateway URL
+            var isProduction = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == "Production";
+            var gatewayUrl = _configuration["BookingIntegration:PublicGatewayUrl"];
+            if (string.IsNullOrEmpty(gatewayUrl))
+            {
+                gatewayUrl = isProduction ? "https://api-gateway-y75a.onrender.com" : "http://api-gateway:8080";
+            }
+
+            _logger.LogInformation("Initializing AlojaExpress provider with API gateway URL: '{Url}'", gatewayUrl);
+
+            // 1. Ensure Provider exists and has the correct url_api_base
             using (var cmd = new NpgsqlCommand("SELECT id FROM proveedores WHERE nombre = 'AlojaExpress' LIMIT 1;", conn))
             {
                 var val = await cmd.ExecuteScalarAsync();
                 if (val != null)
                 {
                     _providerId = (Guid)val;
+                    using var updateCmd = new NpgsqlCommand(
+                        "UPDATE proveedores SET url_api_base = @url, activo = true WHERE id = @id;", conn);
+                    updateCmd.Parameters.AddWithValue("url", gatewayUrl);
+                    updateCmd.Parameters.AddWithValue("id", _providerId.Value);
+                    await updateCmd.ExecuteNonQueryAsync();
+                    _logger.LogInformation("Provider AlojaExpress URL updated to '{Url}' in db_booking", gatewayUrl);
                 }
                 else
                 {
                     var newId = Guid.NewGuid();
                     using var insertCmd = new NpgsqlCommand(
-                        "INSERT INTO proveedores (id, nombre, url_api_base, tipo_servicio, activo) VALUES (@id, 'AlojaExpress', 'http://api-gateway:8080', 'hoteles', true);", conn);
+                        "INSERT INTO proveedores (id, nombre, url_api_base, tipo_servicio, activo) VALUES (@id, 'AlojaExpress', @url, 'hoteles', true);", conn);
                     insertCmd.Parameters.AddWithValue("id", newId);
+                    insertCmd.Parameters.AddWithValue("url", gatewayUrl);
                     await insertCmd.ExecuteNonQueryAsync();
                     _providerId = newId;
-                    _logger.LogInformation("Provider AlojaExpress registered in db_booking with ID {Id}", _providerId);
+                    _logger.LogInformation("Provider AlojaExpress registered in db_booking with ID {Id} and URL '{Url}'", _providerId, gatewayUrl);
                 }
             }
 
