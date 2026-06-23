@@ -12,15 +12,24 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsProduction())
 {
-    builder.Configuration["Microservices:UsuariosUrl"] = "http://usuarios-api-y75a:8080";
-    builder.Configuration["Microservices:AlojamientosUrl"] = "http://alojamientos-api-y75a:8080";
-    builder.Configuration["Microservices:ReservasUrl"] = "http://reservas-api-y75a:8080";
-    builder.Configuration["Microservices:FacturacionUrl"] = "http://facturacion-api-y75a:8080";
+    void MapEnvVar(string configKey, string envVarName)
+    {
+        var val = Environment.GetEnvironmentVariable(envVarName);
+        if (!string.IsNullOrEmpty(val))
+        {
+            builder.Configuration[configKey] = val;
+        }
+    }
 
-    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "http://usuarios-api-y75a:8080/";
-    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "http://alojamientos-api-y75a:8080/";
-    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "http://reservas-api-y75a:8080/";
-    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "http://facturacion-api-y75a:8080/";
+    MapEnvVar("Microservices:UsuariosUrl", "Microservices__UsuariosUrl");
+    MapEnvVar("Microservices:AlojamientosUrl", "Microservices__AlojamientosUrl");
+    MapEnvVar("Microservices:ReservasUrl", "Microservices__ReservasUrl");
+    MapEnvVar("Microservices:FacturacionUrl", "Microservices__FacturacionUrl");
+
+    MapEnvVar("ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address");
+    MapEnvVar("ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address");
+    MapEnvVar("ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address");
+    MapEnvVar("ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address");
 }
 
 // ── Sanitización de URLs de Microservicios ──
