@@ -5,17 +5,64 @@ using System.Net;
 using System.Net.Http;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Collections.Generic;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Configuration;
 
 namespace ApiGateway.Middleware;
 
 public class RenderInternalRoutingHandler : DelegatingHandler
 {
     private readonly ILogger<RenderInternalRoutingHandler> _logger;
+    private readonly IConfiguration _configuration;
+    private readonly Dictionary<string, string> _wakeUpUrls = new(StringComparer.OrdinalIgnoreCase);
 
-    public RenderInternalRoutingHandler(ILogger<RenderInternalRoutingHandler> logger)
+    public RenderInternalRoutingHandler(ILogger<RenderInternalRoutingHandler> logger, IConfiguration configuration)
     {
         _logger = logger;
+        _configuration = configuration;
+        InitializeWakeUpUrls();
+    }
+
+    private void InitializeWakeUpUrls()
+    {
+        var serviceMappings = new[]
+        {
+            new { ConfigKey = "Microservices:UsuariosUrl", PublicUrl = "https://usuarios-api-y75a.onrender.com/" },
+            new { ConfigKey = "Microservices:AlojamientosUrl", PublicUrl = "https://alojamientos-api-y75a.onrender.com/" },
+            new { ConfigKey = "Microservices:ReservasUrl", PublicUrl = "https://reservas-api-y75a.onrender.com/" },
+            new { ConfigKey = "Microservices:FacturacionUrl", PublicUrl = "https://facturacion-api-y75a.onrender.com/" }
+        };
+
+        foreach (var mapping in serviceMappings)
+        {
+            var configuredUrl = _configuration[mapping.ConfigKey];
+            if (!string.IsNullOrEmpty(configuredUrl))
+            {
+                try
+                {
+                    var urlToParse = configuredUrl;
+                    if (!urlToParse.StartsWith("http://", StringComparison.OrdinalIgnoreCase) && 
+                        !urlToParse.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
+                    {
+                        urlToParse = "http://" + urlToParse;
+                    }
+
+                    var uri = new Uri(urlToParse);
+                    var host = uri.Host;
+                    if (!string.IsNullOrEmpty(host))
+                    {
+                        _wakeUpUrls[host] = mapping.PublicUrl;
+                        _logger.LogInformation("[WAKEUP] Dynamically mapped private host '{Host}' to public wakeup URL '{PublicUrl}'", host, mapping.PublicUrl);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning("[WAKEUP] Failed to parse private URL for config {Key} ({Value}): {Message}", 
+                        mapping.ConfigKey, configuredUrl, ex.Message);
+                }
+            }
+        }
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
@@ -104,19 +151,11 @@ public class RenderInternalRoutingHandler : DelegatingHandler
         }
     }
 
-    private static readonly Dictionary<string, string> WakeUpUrls = new(StringComparer.OrdinalIgnoreCase)
-    {
-        { "alojaexpress-usuarios", "https://usuarios-api-y75a.onrender.com/" },
-        { "alojaexpress-alojamientos", "https://alojamientos-api-y75a.onrender.com/" },
-        { "alojaexpress-reservas", "https://reservas-api-y75a.onrender.com/" },
-        { "alojaexpress-facturacion", "https://facturacion-api-y75a.onrender.com/" }
-    };
-
     private void TryWakeUpService(string host)
     {
-        if (WakeUpUrls.TryGetValue(host, out var wakeUpUrl))
+        if (_wakeUpUrls.TryGetValue(host, out var wakeUpUrl))
         {
-            _logger.LogInformation("[WAKEUP] Sending background wake-up ping to public URL '{WakeUpUrl}' for service '{Host}'", wakeUpUrl, host);
+            _logger.LogInformation("[WAKEUP] Sending background wake-up ping to public URL '{WakeUpUrl}' for service host '{Host}'", wakeUpUrl, host);
             _ = Task.Run(async () =>
             {
                 try
