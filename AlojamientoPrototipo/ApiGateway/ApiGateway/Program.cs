@@ -10,22 +10,18 @@ using ApiGateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// In production on Render, we use the private microservice URLs injected by Render as environment variables.
-// Overriding them with public URLs bypasses the private network, introduces latency/cold starts, and triggers Cloudflare/Render rate limiting (429 errors).
-/*
 if (builder.Environment.IsProduction())
 {
-    builder.Configuration["Microservices:UsuariosUrl"] = "https://usuarios-api-y75a.onrender.com";
-    builder.Configuration["Microservices:AlojamientosUrl"] = "https://alojamientos-api-y75a.onrender.com";
-    builder.Configuration["Microservices:ReservasUrl"] = "https://reservas-api-y75a.onrender.com";
-    builder.Configuration["Microservices:FacturacionUrl"] = "https://facturacion-api-y75a.onrender.com";
+    builder.Configuration["Microservices:UsuariosUrl"] = "http://usuarios-api-y75a:8080";
+    builder.Configuration["Microservices:AlojamientosUrl"] = "http://alojamientos-api-y75a:8080";
+    builder.Configuration["Microservices:ReservasUrl"] = "http://reservas-api-y75a:8080";
+    builder.Configuration["Microservices:FacturacionUrl"] = "http://facturacion-api-y75a:8080";
 
-    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "https://usuarios-api-y75a.onrender.com/";
-    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "https://alojamientos-api-y75a.onrender.com/";
-    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "https://reservas-api-y75a.onrender.com/";
-    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "https://facturacion-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "http://usuarios-api-y75a:8080/";
+    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "http://alojamientos-api-y75a:8080/";
+    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "http://reservas-api-y75a:8080/";
+    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "http://facturacion-api-y75a:8080/";
 }
-*/
 
 // ── Sanitización de URLs de Microservicios ──
 void SanitizeConfigurationUrl(string key)
