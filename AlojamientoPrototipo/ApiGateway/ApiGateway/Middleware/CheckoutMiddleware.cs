@@ -98,6 +98,19 @@ public class CheckoutMiddleware
                 catch (Exception ex) { logger.LogWarning("[CHECKOUT] Error buscando por codigo: {Err}", ex.Message); }
             }
 
+            // Intento 3: como ExternalId (GUID)
+            if (internalRes == null && Guid.TryParse(request.IdCarrito, out var externalIdGuid))
+            {
+                try
+                {
+                    var resByExternal = await reservasClient.GetAsync($"api/v1/Reservas/external/{externalIdGuid}");
+                    if (resByExternal.IsSuccessStatusCode)
+                        internalRes = await resByExternal.Content.ReadFromJsonAsync<ReservaInternalResponse>(jsonOptions);
+                    logger.LogInformation("[CHECKOUT] Busqueda por ExternalId={ExternalId}: {Status}", externalIdGuid, resByExternal.StatusCode);
+                }
+                catch (Exception ex) { logger.LogWarning("[CHECKOUT] Error buscando por ExternalId: {Err}", ex.Message); }
+            }
+
             if (internalRes == null)
             {
                 logger.LogError("[CHECKOUT] No se encontró reserva para idCarrito={IdCarrito}. Verifique que la reserva existe en el sistema.", request.IdCarrito);
