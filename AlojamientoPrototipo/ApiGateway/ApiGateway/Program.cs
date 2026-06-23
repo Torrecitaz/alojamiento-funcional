@@ -12,24 +12,15 @@ var builder = WebApplication.CreateBuilder(args);
 
 if (builder.Environment.IsProduction())
 {
-    void MapEnvVar(string configKey, string envVarName)
-    {
-        var val = Environment.GetEnvironmentVariable(envVarName);
-        if (!string.IsNullOrEmpty(val))
-        {
-            builder.Configuration[configKey] = val;
-        }
-    }
+    builder.Configuration["Microservices:UsuariosUrl"] = "https://usuarios-api-y75a.onrender.com";
+    builder.Configuration["Microservices:AlojamientosUrl"] = "https://alojamientos-api-y75a.onrender.com";
+    builder.Configuration["Microservices:ReservasUrl"] = "https://reservas-api-y75a.onrender.com";
+    builder.Configuration["Microservices:FacturacionUrl"] = "https://facturacion-api-y75a.onrender.com";
 
-    MapEnvVar("Microservices:UsuariosUrl", "Microservices__UsuariosUrl");
-    MapEnvVar("Microservices:AlojamientosUrl", "Microservices__AlojamientosUrl");
-    MapEnvVar("Microservices:ReservasUrl", "Microservices__ReservasUrl");
-    MapEnvVar("Microservices:FacturacionUrl", "Microservices__FacturacionUrl");
-
-    MapEnvVar("ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__usuarios-cluster__Destinations__destination1__Address");
-    MapEnvVar("ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__alojamientos-cluster__Destinations__destination1__Address");
-    MapEnvVar("ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__reservas-cluster__Destinations__destination1__Address");
-    MapEnvVar("ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address", "ReverseProxy__Clusters__facturacion-cluster__Destinations__destination1__Address");
+    builder.Configuration["ReverseProxy:Clusters:usuarios-cluster:Destinations:destination1:Address"] = "https://usuarios-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:alojamientos-cluster:Destinations:destination1:Address"] = "https://alojamientos-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "https://reservas-api-y75a.onrender.com/";
+    builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "https://facturacion-api-y75a.onrender.com/";
 }
 
 // ── Sanitización de URLs de Microservicios ──
@@ -221,71 +212,6 @@ var app = builder.Build();
 app.UseCors("AllowAll");
 
 app.MapHealthChecks("/health");
-
-app.MapGet("/api/config-debug", (IConfiguration config) =>
-{
-    var debugInfo = new Dictionary<string, string>();
-    foreach (var entry in config.AsEnumerable())
-    {
-        if (entry.Key.Contains("Microservices", StringComparison.OrdinalIgnoreCase) ||
-            entry.Key.Contains("ReverseProxy", StringComparison.OrdinalIgnoreCase) ||
-            entry.Key.Contains("ConnectionStrings", StringComparison.OrdinalIgnoreCase))
-        {
-            debugInfo[entry.Key] = entry.Value ?? "";
-        }
-    }
-    foreach (System.Collections.DictionaryEntry env in Environment.GetEnvironmentVariables())
-    {
-        var key = env.Key.ToString() ?? "";
-        if (key.Contains("Microservices", StringComparison.OrdinalIgnoreCase) ||
-            key.Contains("ReverseProxy", StringComparison.OrdinalIgnoreCase) ||
-            key.Contains("ConnectionStrings", StringComparison.OrdinalIgnoreCase))
-        {
-            debugInfo["ENV_" + key] = env.Value?.ToString() ?? "";
-        }
-    }
-    return Results.Ok(debugInfo);
-});
-
-app.MapGet("/api/test-connection", async (IHttpClientFactory httpClientFactory) =>
-{
-    var client = httpClientFactory.CreateClient();
-    var results = new Dictionary<string, object>();
-
-    var urlsToTest = new[]
-    {
-        "http://srv-d8976t6gvqtc73bmv43g:8080/health",
-        "https://usuarios-api-y75a.onrender.com/health"
-    };
-
-    foreach (var url in urlsToTest)
-    {
-        try
-        {
-            var response = await client.GetAsync(url);
-            results[url] = new
-            {
-                success = true,
-                statusCode = (int)response.StatusCode,
-                phrase = response.ReasonPhrase
-            };
-        }
-        catch (Exception ex)
-        {
-            var inner = ex.InnerException;
-            results[url] = new
-            {
-                success = false,
-                errorType = ex.GetType().Name,
-                errorMessage = ex.Message,
-                innerErrorType = inner?.GetType().Name,
-                innerErrorMessage = inner?.Message
-            };
-        }
-    }
-
-    return Results.Ok(results);
-});
 
 app.MapHub<BookingHub>("/bookingHub");
 

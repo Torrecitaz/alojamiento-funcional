@@ -51,6 +51,16 @@ public static class DatabaseExtensions
                     context.SaveChanges();
                 }
             }
+
+            // Asegurar que daniel@gmail.com tenga la contraseña daniel2005 con hash BCrypt
+            var danielEmail = "daniel@gmail.com";
+            var danielUser = context.Usuarios.FirstOrDefault(u => u.Email == danielEmail);
+            if (danielUser != null)
+            {
+                Console.WriteLine("[SEED] Actualizando contraseña de daniel@gmail.com...");
+                danielUser.PasswordHash = BCrypt.Net.BCrypt.HashPassword("daniel2005");
+                context.SaveChanges();
+            }
         }
         catch (Exception ex)
         {
