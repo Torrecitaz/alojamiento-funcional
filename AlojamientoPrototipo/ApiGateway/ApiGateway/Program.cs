@@ -220,10 +220,10 @@ app.MapGet("/api/test-connection", async (IHttpClientFactory httpClientFactory) 
 
     var urlsToTest = new[]
     {
-        "http://usuarios-api-y75a:8080/health",
-        "http://reservas-api-y75a:8080/health",
-        "http://alojamientos-api-y75a:8080/health",
-        "http://facturacion-api-y75a:8080/health"
+        "http://srv-d8976t6gvqtc73bmv43g:8080/health",
+        "http://srv-d8976t6gvqtc73bmv43g.render.internal:8080/health",
+        "http://srv-d8976t6gvqtc73bmv43g.internal:8080/health",
+        "http://srv-d8976t6gvqtc73bmv43g.local:8080/health"
     };
 
     foreach (var url in urlsToTest)
