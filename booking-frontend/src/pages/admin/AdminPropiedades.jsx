@@ -55,7 +55,13 @@ export default function AdminPropiedades() {
 
       if (propRes.status === 'fulfilled') {
         const payload = propRes.value.data.datos;
-        setPropiedades(esAdmin ? (payload?.items || []) : (payload || []));
+        const list = esAdmin ? (payload?.items || []) : (payload || []);
+        const normalized = list.map(item => ({
+          ...item,
+          propiedadId: item.propiedadId || item.alojamientoId,
+          alojamientoId: item.alojamientoId || item.propiedadId
+        }));
+        setPropiedades(normalized);
       }
       if (ciudRes.status === 'fulfilled') setCiudades(ciudRes.value.data.datos || []);
       if (tipoRes.status === 'fulfilled') setTipos(tipoRes.value.data.datos || []);

@@ -45,7 +45,13 @@ export default function AdminHabitaciones() {
     fetchProps
       .then(res => {
         const payload = res.data.datos;
-        setPropiedades(esAdmin ? (payload?.items || []) : (payload || []));
+        const list = esAdmin ? (payload?.items || []) : (payload || []);
+        const normalized = list.map(item => ({
+          ...item,
+          propiedadId: item.propiedadId || item.alojamientoId,
+          alojamientoId: item.alojamientoId || item.propiedadId
+        }));
+        setPropiedades(normalized);
       })
       .catch(() => toast.error('Error al cargar la lista de propiedades.'));
     // eslint-disable-next-line

@@ -35,6 +35,7 @@ public class ApiResponse<T>
 public record AlojamientoDto
 {
     public int AlojamientoId { get; init; }
+    public int PropiedadId => AlojamientoId; // Fallback mapping for admin frontend compatibility
     public string Nombre { get; init; } = string.Empty;
     public string TipoAlojamiento { get; init; } = string.Empty;
     public string Ciudad { get; init; } = string.Empty;

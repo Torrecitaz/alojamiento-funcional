@@ -56,9 +56,14 @@ export default function CalendarioAdmin() {
       .then(res => {
         const payload = res.data.datos;
         const list = esAdmin ? (payload?.items || []) : (payload || []);
-        setPropiedades(list);
-        if (list.length > 0) {
-          setPropiedadSeleccionada(list[0].propiedadId.toString());
+        const normalized = list.map(item => ({
+          ...item,
+          propiedadId: item.propiedadId || item.alojamientoId,
+          alojamientoId: item.alojamientoId || item.propiedadId
+        }));
+        setPropiedades(normalized);
+        if (normalized.length > 0) {
+          setPropiedadSeleccionada(normalized[0].propiedadId.toString());
         }
       })
       .catch(() => toast.error('Error al cargar la lista de propiedades.'));
