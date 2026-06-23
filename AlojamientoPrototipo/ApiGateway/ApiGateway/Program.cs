@@ -10,6 +10,9 @@ using ApiGateway.Middleware;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// In production on Render, we use the private microservice URLs injected by Render as environment variables.
+// Overriding them with public URLs bypasses the private network, introduces latency/cold starts, and triggers Cloudflare/Render rate limiting (429 errors).
+/*
 if (builder.Environment.IsProduction())
 {
     builder.Configuration["Microservices:UsuariosUrl"] = "https://usuarios-api-y75a.onrender.com";
@@ -22,6 +25,7 @@ if (builder.Environment.IsProduction())
     builder.Configuration["ReverseProxy:Clusters:reservas-cluster:Destinations:destination1:Address"] = "https://reservas-api-y75a.onrender.com/";
     builder.Configuration["ReverseProxy:Clusters:facturacion-cluster:Destinations:destination1:Address"] = "https://facturacion-api-y75a.onrender.com/";
 }
+*/
 
 // ── Sanitización de URLs de Microservicios ──
 void SanitizeConfigurationUrl(string key)
