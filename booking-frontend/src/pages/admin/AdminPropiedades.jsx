@@ -84,7 +84,9 @@ export default function AdminPropiedades() {
         ciudadId: parseInt(formData.ciudadId),
         tipoAlojamientoId: parseInt(formData.tipoAlojamientoId),
         estrellas: parseInt(formData.estrellas),
-        colaboradorId: esAdmin ? parseInt(formData.colaboradorId) : user?.colaboradorId
+        colaboradorId: esAdmin 
+          ? (formData.colaboradorId ? parseInt(formData.colaboradorId) : 1) 
+          : (user?.colaboradorId || 1)
       };
 
       if (editingId) {
@@ -220,8 +222,8 @@ export default function AdminPropiedades() {
               {esAdmin && (
                 <div>
                   <label className="form-label">Colaborador Dueño</label>
-                  <select required className="input-field" name="colaboradorId" value={formData.colaboradorId} onChange={handleInputChange}>
-                    <option value="">-- Seleccionar --</option>
+                  <select className="input-field" name="colaboradorId" value={formData.colaboradorId} onChange={handleInputChange}>
+                    <option value="">-- Ninguno / Administrador --</option>
                     {colaboradores.map(c => <option key={c.colaboradorId} value={c.colaboradorId}>{c.nombreEmpresa || c.nombreCompleto}</option>)}
                   </select>
                 </div>
