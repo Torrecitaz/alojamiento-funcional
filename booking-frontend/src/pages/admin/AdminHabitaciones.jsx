@@ -96,6 +96,7 @@ export default function AdminHabitaciones() {
       const payload = {
         ...formData,
         propiedadId: parseInt(propiedadSeleccionada),
+        alojamientoId: parseInt(propiedadSeleccionada),
         capacidadAdultos: parseInt(formData.capacidadAdultos),
         capacidadNinos: parseInt(formData.capacidadNinos),
         numBanos: parseInt(formData.numBanos),

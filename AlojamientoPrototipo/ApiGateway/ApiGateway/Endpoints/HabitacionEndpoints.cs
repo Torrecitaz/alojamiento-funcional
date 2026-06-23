@@ -264,8 +264,17 @@ public static class HabitacionEndpoints
         {
             try
             {
+                var jsonText = payload.GetRawText();
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var dict = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(jsonText, options) ?? new();
+                
+                if (dict.TryGetValue("propiedadId", out var propIdVal) && !dict.ContainsKey("alojamientoId"))
+                {
+                    dict["alojamientoId"] = propIdVal;
+                }
+
                 var client = httpClientFactory.CreateClient("Alojamientos");
-                var response = await client.PostAsJsonAsync("api/v1/Habitaciones", payload);
+                var response = await client.PostAsJsonAsync("api/v1/Habitaciones", dict);
                 if (!response.IsSuccessStatusCode)
                 {
                     var err = await response.Content.ReadAsStringAsync();
