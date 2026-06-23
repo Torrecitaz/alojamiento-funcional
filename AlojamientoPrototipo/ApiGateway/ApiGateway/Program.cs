@@ -213,6 +213,31 @@ app.UseCors("AllowAll");
 
 app.MapHealthChecks("/health");
 
+app.MapGet("/api/config-debug", (IConfiguration config) =>
+{
+    var debugInfo = new Dictionary<string, string>();
+    foreach (var entry in config.AsEnumerable())
+    {
+        if (entry.Key.Contains("Microservices", StringComparison.OrdinalIgnoreCase) ||
+            entry.Key.Contains("ReverseProxy", StringComparison.OrdinalIgnoreCase) ||
+            entry.Key.Contains("ConnectionStrings", StringComparison.OrdinalIgnoreCase))
+        {
+            debugInfo[entry.Key] = entry.Value ?? "";
+        }
+    }
+    foreach (System.Collections.DictionaryEntry env in Environment.GetEnvironmentVariables())
+    {
+        var key = env.Key.ToString() ?? "";
+        if (key.Contains("Microservices", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("ReverseProxy", StringComparison.OrdinalIgnoreCase) ||
+            key.Contains("ConnectionStrings", StringComparison.OrdinalIgnoreCase))
+        {
+            debugInfo["ENV_" + key] = env.Value?.ToString() ?? "";
+        }
+    }
+    return Results.Ok(debugInfo);
+});
+
 app.MapHub<BookingHub>("/bookingHub");
 
 // ── Middleware de idempotencia y Checkout ANTES de YARP ──
